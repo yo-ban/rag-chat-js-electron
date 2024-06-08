@@ -1,13 +1,55 @@
-Node v20.10.0 (LTS) or Later
+# RAGChatJS
 
-### install
-`npm install`
+## 目次
+1. [機能](#機能)
+2. [インストール](#インストール)
+3. [使用方法](#使用方法)
+4. [ビルド](#ビルド)
 
-### run
-`npm start`
+## 機能
+- ベクトルDB(Faiss)作成・削除
+- ベクトルDBへのドキュメント追加・削除
+- 複数チャットの作成
+- RAG機能(質問分析, クエリ拡張, 類似度検索, 回答生成 等)
+- 検索結果(チャンク)の確認
+- 検索結果からソースファイル・フォルダを開く
+- システムプロンプト設定(全体既定値, チャット毎)
+- temperature, max_tokens設定(全体既定値, チャット毎)
+- トピック(会話の背景情報 等)設定(チャット毎)
+- etc
 
-### build
-`npm run build`
+## 対応API
+- OpenAI
+- Cohere(LLMのみ)
+- Azure OpenAI(動作未確認)
 
-### create executable
-`npm run dist`
+## インストール
+Node.js v20.10.0 (LTS) 以降が必要です。
+
+以下のコマンドを使用して依存関係をインストールします：
+```bash
+npm install
+```
+
+## 使用方法
+開発モードでアプリケーションを起動するには、以下のコマンドを実行します：
+```bash
+npm start
+```
+
+## ビルド
+アプリケーションをビルドするには、以下のコマンドを実行します：
+```bash
+npm run build
+```
+
+electron-builderで実行可能ファイルを作成するには、以下のコマンドを実行します：
+```bash
+npm run dist
+```
+
+---
+
+ライセンス
+MIT
+
