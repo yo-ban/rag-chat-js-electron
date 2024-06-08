@@ -173,7 +173,7 @@ ipcMain.handle('similarity-search', async (event, dbId, queries, k = 10) => {
     );
 
     // 簡易リランク、ソート
-    const mergedResults = mergeAndRerankSearchResults(searchResults, k);
+    const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
 
     return mergedResults;
   });

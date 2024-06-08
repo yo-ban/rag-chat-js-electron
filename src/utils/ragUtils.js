@@ -1,53 +1,109 @@
-// 検索結果の統合とリランキング処理
-function mergeAndRerankSearchResults(searchResults, k = 6) {
+const kuromoji = require('kuromoji');
 
+function buildTokenizer() {
+  return new Promise((resolve, reject) => {
+    kuromoji.builder({ dicPath: "node_modules/kuromoji/dict" }).build((err, tokenizer) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(tokenizer);
+      }
+    });
+  });
+}
+
+// 検索結果の統合とリランキング処理
+async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
   console.log(`Merge and Rerank Results. k=${k}.`);
 
   // 1. 各クエリの結果をフラットな配列にまとめる
   const allResults = searchResults.flat();
+  console.log(`All Results length: ${allResults.length}`);
 
-  // 2. スコアの正規化
-  const maxScore = Math.max(...allResults.map(result => result[1]));
-  const minScore = Math.min(...allResults.map(result => result[1]));
+  // 2. スコアの標準化
+  const scores = allResults.map(result => result[1]);
+  const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const stdDevScore = Math.sqrt(scores.map(score => Math.pow(score - meanScore, 2)).reduce((a, b) => a + b, 0) / scores.length);
 
-  // 正規化されたスコアを計算
-  const normalizedResults = allResults.map(result => {
-    const normalizedScore = (result[1] - minScore) / (maxScore - minScore);
-    return { pageContent: result[0].pageContent, metadata: result[0].metadata, normalizedScore };
+  // 標準化されたスコアを計算
+  const standardizedResults = allResults.map(result => {
+    const standardizedScore = (result[1] - meanScore) / stdDevScore;
+    return { pageContent: result[0].pageContent, metadata: result[0].metadata, standardizedScore };
   });
 
-  // 3. 重複のカウント
+  // 3. クエリからキーワードを抽出
+  const keywordsSet = new Set();
+  const tokenizer = await buildTokenizer();
+
+  for (const query of queries) {
+    const tokens = tokenizer.tokenize(query);
+    const parsedQuery = tokens.filter(token => token.pos === "名詞" && (token.pos_detail_1 === "一般" || token.pos_detail_1 === "固有名詞"))
+    .map(token => token.surface_form)
+    .filter(keyword => keyword.length > 1);
+    parsedQuery.forEach(keyword => keywordsSet.add(keyword));
+  }
+  const keywords = Array.from(keywordsSet); 
+  
+  console.log(`Extracted Keywords: ${JSON.stringify(keywords)}`);
+
+  // 4. キーワード一致度を計算
+  const keywordScore = (content, keywords) => {
+    let score = 0;
+    if (keywords.length === 0) {
+      return null; // キーワードが存在しない場合はnullを返す
+    }
+    keywords.forEach(keyword => {
+      if (content.includes(keyword)) {
+        score += 1;
+      }
+    });
+    return score / keywords.length; // キーワード一致度を計算
+  };
+
+  standardizedResults.forEach(result => {
+    result.keywordScore = keywordScore(result.pageContent, keywords);
+    if (result.keywordScore === null) {
+      result.keywordScore = 0; // キーワードスコアがnullの場合は0を設定
+    }
+  });
+
+  // 5. 重複のカウント
   const resultCount = {};
-  normalizedResults.forEach(result => {
+  standardizedResults.forEach(result => {
     const content = result.pageContent;
     if (!resultCount[content]) {
-      resultCount[content] = { count: 0, normalizedScores: [] };
+      resultCount[content] = { count: 0, standardizedScores: [], keywordScores: [] };
     }
     resultCount[content].count += 1;
-    resultCount[content].normalizedScores.push(result.normalizedScore);
+    resultCount[content].standardizedScores.push(result.standardizedScore);
+    resultCount[content].keywordScores.push(result.keywordScore);
   });
 
-  // 4. 重複カウントとスコアに基づいた総合スコアの計算
+  // 6. 重複カウントとスコアに基づいた総合スコアの計算
   const uniqueResults = Object.keys(resultCount).map(content => {
-    const { count, normalizedScores } = resultCount[content];
-    const averageNormalizedScore = normalizedScores.reduce((a, b) => a + b, 0) / normalizedScores.length;
-    const combinedScore = averageNormalizedScore * (1 + 0.1 * count); // 重複カウントを0.1の重みで加算
+    const { count, standardizedScores, keywordScores } = resultCount[content];
+    const averageStandardizedScore = standardizedScores.reduce((a, b) => a + b, 0) / standardizedScores.length;
+    const validKeywordScores = keywordScores.filter(score => score !== null); // nullスコアを除外
+    const averageKeywordScore = validKeywordScores.length > 0 ? validKeywordScores.reduce((a, b) => a + b, 0) / validKeywordScores.length : 0;
+    const combinedScore = (averageStandardizedScore * 0.8) + (averageKeywordScore * 0.2) * (1 + 0.1 * count); // スコアに重みを付けて加算
     return {
       pageContent: content,
       combinedScore,
-      originalResults: normalizedResults.filter(result => result.pageContent === content)
+      originalResults: standardizedResults.filter(result => result.pageContent === content)
     };
   });
 
-  // 5. リランキング（総合スコアに基づいてソート）
+  // 7. リランキング（総合スコアに基づいてソート）
   uniqueResults.sort((a, b) => b.combinedScore - a.combinedScore);
 
-  // 6. 上位k件の結果を返す
-  return uniqueResults.slice(0, k).map(result => ({
+  // 8. 上位k件の結果を返す
+  const topResults = uniqueResults.slice(0, k).map(result => ({
     pageContent: result.pageContent,
     metadata: result.originalResults[0].metadata,
     combinedScore: result.combinedScore
   }));
+
+  return topResults;
 }
 
 // 生成AIのレスポンスからクエリを抽出する関数
