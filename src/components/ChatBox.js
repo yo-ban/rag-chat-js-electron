@@ -135,10 +135,7 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
 
     } catch (error) {
       console.error('Error during similarity search:', error);
-      setError(t('errorAddingDocument'));
-      setIsTyping(false);
-      setIsSending(false);
-      setStatusMessage('');
+      toast.error(t('errorSearchingDocument'));
       return { transformedQueries: [], mergedResults: [] };
     }
   };

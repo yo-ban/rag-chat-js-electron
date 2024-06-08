@@ -106,6 +106,7 @@
   "error": "Error",
   "none": "None",
   "errorLoadingDatabase": "Error loading vector DB.",
+  "errorSearchingDocument": "Error searching document.",
   "errorAddingDocument": "Error adding document.",
   "errorDeletingDocument": "Error deleting document.",
   "failedToLoadChatHistory": "Failed to load chat history.",
