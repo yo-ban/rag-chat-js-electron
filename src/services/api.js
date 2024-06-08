@@ -1,0 +1,32 @@
+// ElectronのIPC通信を抽象化するサービス
+const api = {
+  sendMessage: (messages, chatId, context, context2) => window.electron.sendMessage(messages, chatId, context, context2),
+  generateChatName: (messages, chatId) => window.electron.generateChatName(messages, chatId),
+  loadChats: () => window.electron.loadChats(),
+  loadChatHistory: (chatId) => window.electron.loadChatHistory(chatId),
+  createNewChat: (dbName, chatConfig) => window.electron.createNewChat(dbName, chatConfig),
+  updateChat: (updatedChat) => window.electron.updateChat(updatedChat),
+  deleteChat: (chatId) => window.electron.deleteChat(chatId),
+  onStreamingMessage: (callback) => window.electron.onStreamingMessage(callback),
+  onStreamingMessageEnd: (callback) => window.electron.onStreamingMessageEnd(callback),
+  loadDatabases: () => window.electron.loadDatabases(),
+  reloadDatabases: () => window.electron.reloadDatabases(),
+  openFileDialog: (options) => window.electron.openFileDialog(options),
+  onDatabaseProgress: (callback) => window.electron.onDatabaseProgress(callback),
+  createDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => window.electron.createDatabase(dbName, filePaths, chunkSize, overlapPercentage, description),
+  loadDatabase: (dbName) => window.electron.loadDatabase(dbName),
+  deleteDatabase: (dbName) => window.electron.deleteDatabase(dbName),
+  getDocumentNames: (dbName) => window.electron.getDocumentNames(dbName),
+  addDocumentsToDatabase: (dbName, filePaths, chunkSize, overlapPercentage) => window.electron.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage),
+  deleteDocumentFromDatabase: (dbName, documentIndex) => window.electron.deleteDocumentFromDatabase(dbName, documentIndex),
+  transformQuery: (chatId, chatHistory, analysis) => window.electron.transformQuery(chatId, chatHistory, analysis),
+  analysisQuery: (chatId, chatHistory) => window.electron.analysisQuery(chatId, chatHistory),
+  similaritySearch: (dbId, queries, k) => window.electron.similaritySearch(dbId, queries, k),
+  loadSettings: () => window.electron.loadSettings(),
+  saveSettings: (settings) => window.electron.saveSettings(settings),
+  openLocalFile: (filePath) => window.electron.openLocalFile(filePath),
+  onDocMessage: (callback) => window.electron.onDocMessage(callback),
+  removeListener: (name, callback) => window.electron.removeListener(name, callback),
+};
+
+export default api;

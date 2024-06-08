@@ -1,0 +1,12 @@
+node_modules
+.env
+dist
+package-lock.json
+.summaryignore
+test
+settings.json
+data
+data_
+logs
+*.log
+build

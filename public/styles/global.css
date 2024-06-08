@@ -1,0 +1,66 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f0f2f5;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0; 
+  box-sizing: border-box; 
+}
+
+/* スクロールバーのデザイン */
+::-webkit-scrollbar {
+  width: 6px; /* 垂直スクロールバーの幅 */
+  height: 6px; /* 水平スクロールバーの高さ */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* スクロールバーのトラックの背景色 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #b8b8b8c7; /* スクロールバーのつまみの背景色 */
+  border-radius: 4px; /* スクロールバーのつまみの角丸 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8a8989c7; /* スクロールバーのつまみにホバーしたときの背景色 */
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.typing-dot {
+  height: 8px;
+  width: 8px;
+  margin: 0 2px;
+  background-color: #007bff;
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 1.4s infinite both;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

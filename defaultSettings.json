@@ -1,0 +1,43 @@
+{
+  "vender": "openai",
+  "embeddingsVender": "openai",
+  "useSeparateVenders": false,
+  "vendors": {
+    "openai": {
+      "apiKey": "openai-api-key",
+      "baseUrl": "https://api.openai.com/v1",
+      "modelName": "gpt-4o",
+      "embeddingsModelName": "text-embedding-3-large"
+    },
+    "azure": {
+      "apiKey": "azure-api-key",
+      "baseUrl": "https://<resource name>.openai.azure.com/",
+      "deploymentName": "my-deployment",
+      "embeddingsDeploymentName": "my-deployment-embeddings"
+    },
+    "cohere": {
+      "apiKey": "cohere-api-key",
+      "modelName": "c4ai-aya-23"
+    }
+  },
+  "embeddingsVendors": {
+    "openai": {
+      "apiKey": "embeddings-openai-api-key",
+      "baseUrl": "https://api.openai.com/v1",
+      "embeddingsModelName": "text-embedding-3-large"
+    },
+    "azure": {
+      "apiKey": "embeddings-azure-api-key",
+      "baseUrl": "https://<resource name>.openai.azure.com/",
+      "embeddingsDeploymentName": "my-deployment-embeddings"
+    }
+  },
+  "systemMessage": "以下は、ユーザーの質問に関連する検索結果です。\n\n<search_results>\n{{DOCUMENTS}}\n</search_results>\n\n会話のトピックに関する背景情報はこちらです。\n\n<topic>\n{{TOPIC}}\n</topic>\n\n上記の検索結果とトピック情報を慎重に確認してください。その後、ユーザーの質問に答えるために検索結果とトピック情報をどのように活用するかについてのステップバイステップの思考過程を書き出してください。\n\n最後に、ユーザーの質問に対する回答を提供してください。\n回答をサポートする具体的な検索結果や項目名を明記してください。",
+  "temperature": 0.5,
+  "maxTokens": 1024,
+  "searchResultsLimit": 6,
+  "language": "ja",
+  "vectorDBSavePath": "data/",
+  "chatDataSavePath": "data/",
+  "folderDepth": 3
+}
