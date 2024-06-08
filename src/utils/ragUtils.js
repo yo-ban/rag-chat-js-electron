@@ -1,8 +1,11 @@
 const kuromoji = require('kuromoji');
+const { app } = require('electron');
+const path = require('path');
+
 
 function buildTokenizer() {
   return new Promise((resolve, reject) => {
-    kuromoji.builder({ dicPath: "node_modules/kuromoji/dict" }).build((err, tokenizer) => {
+    kuromoji.builder({ dicPath: path.join(app.getAppPath(), "node_modules/kuromoji/dict") }).build((err, tokenizer) => {
       if (err) {
         reject(err);
       } else {
