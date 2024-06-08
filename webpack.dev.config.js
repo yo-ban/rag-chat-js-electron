@@ -6,7 +6,7 @@ const mainConfig =  {
   mode: 'development', // または 'development'
   entry: './src/main.js',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'build'),
     filename: 'main.js'
   },
   target: 'electron-main',
@@ -37,7 +37,7 @@ const preloadConfig = {
   mode: 'development',
   entry: './src/preload.js',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'build'),
     filename: 'preload.js'
   },
   target: 'electron-preload',
@@ -68,7 +68,7 @@ const rendererConfig = {
   mode: 'development',
   entry: './src/renderer.js',
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'build'),
     filename: 'renderer.js'
   },
   module: {

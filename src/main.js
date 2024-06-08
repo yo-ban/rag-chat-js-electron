@@ -21,7 +21,7 @@ function createWindow() {
     autoHideMenuBar: true,
   });
 
-  mainWindow.loadFile('dist/index.html');
+  mainWindow.loadFile('build/index.html');
 }
 
 app.on('ready', async () => {
