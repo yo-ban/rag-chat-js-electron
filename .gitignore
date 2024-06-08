@@ -6,7 +6,7 @@ package-lock.json
 test
 settings.json
 data
-data_
 logs
 *.log
 build
+.vscode
