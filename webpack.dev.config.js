@@ -15,6 +15,9 @@ const mainConfig =  {
     __filename: false,
   },
   externals: {
+    bufferutil: 'commonjs bufferutil',
+    'utf-8-validate': 'commonjs utf-8-validate',
+    picocolors: 'commonjs picocolors',
     'faiss-node': 'commonjs faiss-node'
   },
   module: {
