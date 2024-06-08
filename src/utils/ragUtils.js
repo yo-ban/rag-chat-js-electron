@@ -22,21 +22,22 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
   // 1. 各クエリごとに標準化スコアを計算
   const standardizedResults = [];
   const minLength = 80; // 最低文字数の設定
-  const penaltyFactor = 0.5; // ペナルティの係数（例: 0.5）
+  const penaltyFactor = 0.35; // ペナルティの係数（例: 0.5）
 
   searchResults.forEach((results, queryIndex) => {
-    const scores = results.map(result => result[1]);
-    const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-    const stdDevScore = Math.sqrt(scores.map(score => Math.pow(score - meanScore, 2)).reduce((a, b) => a + b, 0) / scores.length);
-
-    results.forEach(result => {
-      let standardizedScore = (result[1] - meanScore) / stdDevScore;
-      
-      // ペナルティの適用（標準化後のスコアに対して）
+    const penalizedScores = results.map(result => {
+      let score = result[1];
       if (result[0].pageContent.length < minLength) {
-        standardizedScore *= penaltyFactor; // ペナルティを適用
+        score *= penaltyFactor; // ペナルティを適用
       }
-      
+      return score;
+    });
+
+    const meanScore = penalizedScores.reduce((a, b) => a + b, 0) / penalizedScores.length;
+    const stdDevScore = Math.sqrt(penalizedScores.map(score => Math.pow(score - meanScore, 2)).reduce((a, b) => a + b, 0) / penalizedScores.length);
+
+    results.forEach((result, index) => {
+      const standardizedScore = (penalizedScores[index] - meanScore) / stdDevScore;
       standardizedResults.push({ pageContent: result[0].pageContent, metadata: result[0].metadata, standardizedScore, queryIndex });
     });
   });
@@ -66,11 +67,7 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
     }
     keywords.forEach(keyword => {
       if (content.includes(keyword)) { 
-        if (content.length > minLength) {
-          score += 1;
-        } else { 
-          score += penaltyFactor; // 短すぎる結果は重視しない
-        }
+        score += 1;
       }
     });
     return score / keywords.length; // キーワード一致度を計算
