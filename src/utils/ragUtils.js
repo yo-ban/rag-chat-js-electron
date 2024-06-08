@@ -19,22 +19,31 @@ function buildTokenizer() {
 async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
   console.log(`Merge and Rerank Results. k=${k}.`);
 
-  // 1. 各クエリの結果をフラットな配列にまとめる
-  const allResults = searchResults.flat();
-  console.log(`All Results length: ${allResults.length}`);
+  // 1. 各クエリごとに標準化スコアを計算
+  const standardizedResults = [];
+  const minLength = 80; // 最低文字数の設定
+  const penaltyFactor = 0.5; // ペナルティの係数（例: 0.5）
 
-  // 2. スコアの標準化
-  const scores = allResults.map(result => result[1]);
-  const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const stdDevScore = Math.sqrt(scores.map(score => Math.pow(score - meanScore, 2)).reduce((a, b) => a + b, 0) / scores.length);
+  searchResults.forEach((results, queryIndex) => {
+    const scores = results.map(result => result[1]);
+    const meanScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const stdDevScore = Math.sqrt(scores.map(score => Math.pow(score - meanScore, 2)).reduce((a, b) => a + b, 0) / scores.length);
 
-  // 標準化されたスコアを計算
-  const standardizedResults = allResults.map(result => {
-    const standardizedScore = (result[1] - meanScore) / stdDevScore;
-    return { pageContent: result[0].pageContent, metadata: result[0].metadata, standardizedScore };
+    results.forEach(result => {
+      let standardizedScore = (result[1] - meanScore) / stdDevScore;
+      
+      // ペナルティの適用（標準化後のスコアに対して）
+      if (result[0].pageContent.length < minLength) {
+        standardizedScore *= penaltyFactor; // ペナルティを適用
+      }
+      
+      standardizedResults.push({ pageContent: result[0].pageContent, metadata: result[0].metadata, standardizedScore, queryIndex });
+    });
   });
+  
+  console.log(`All Standardized Results length: ${standardizedResults.length}`);
 
-  // 3. クエリからキーワードを抽出
+  // 2. クエリからキーワードを抽出
   const keywordsSet = new Set();
   const tokenizer = await buildTokenizer();
 
@@ -49,15 +58,19 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
   
   console.log(`Extracted Keywords: ${JSON.stringify(keywords)}`);
 
-  // 4. キーワード一致度を計算
+  // 3. キーワード一致度を計算
   const keywordScore = (content, keywords) => {
     let score = 0;
     if (keywords.length === 0) {
       return null; // キーワードが存在しない場合はnullを返す
     }
     keywords.forEach(keyword => {
-      if (content.includes(keyword)) {
-        score += 1;
+      if (content.includes(keyword)) { 
+        if (content.length > minLength) {
+          score += 1;
+        } else { 
+          score += penaltyFactor; // 短すぎる結果は重視しない
+        }
       }
     });
     return score / keywords.length; // キーワード一致度を計算
@@ -70,7 +83,7 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
     }
   });
 
-  // 5. 重複のカウント
+  // 4. 重複のカウント
   const resultCount = {};
   standardizedResults.forEach(result => {
     const content = result.pageContent;
@@ -82,7 +95,7 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
     resultCount[content].keywordScores.push(result.keywordScore);
   });
 
-  // 6. 重複カウントとスコアに基づいた総合スコアの計算
+  // 5. 重複カウントとスコアに基づいた総合スコアの計算
   const uniqueResults = Object.keys(resultCount).map(content => {
     const { count, standardizedScores, keywordScores } = resultCount[content];
     const averageStandardizedScore = standardizedScores.reduce((a, b) => a + b, 0) / standardizedScores.length;
@@ -96,10 +109,10 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
     };
   });
 
-  // 7. リランキング（総合スコアに基づいてソート）
+  // 6. リランキング（総合スコアに基づいてソート）
   uniqueResults.sort((a, b) => b.combinedScore - a.combinedScore);
 
-  // 8. 上位k件の結果を返す
+  // 7. 上位k件の結果を返す
   const topResults = uniqueResults.slice(0, k).map(result => ({
     pageContent: result.pageContent,
     metadata: result.originalResults[0].metadata,
