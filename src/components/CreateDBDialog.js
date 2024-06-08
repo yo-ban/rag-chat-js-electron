@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Collapse, Stack, Tooltip } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Stack, Tooltip, FormControl, InputLabel, Select } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
@@ -89,7 +89,12 @@ const StyledGridItem = styled(Grid)(({ theme }) => ({
   paddingRight: theme.spacing(1),
 }));
 
-const CreateDBDialog = ({ open, onClose, onCreate, folderDepth, dbName = null }) => {
+const StyledFormControl = styled(FormControl)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  width: '100%',
+}));
+
+const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
   const { t } = useTranslation();
 
   const [newDatabaseName, setNewDatabaseName] = useState(dbName || '');
@@ -98,9 +103,9 @@ const CreateDBDialog = ({ open, onClose, onCreate, folderDepth, dbName = null })
   const [isCreating, setIsCreating] = useState(false);
   const [progressMessage, setProgressMessage] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [chunkSize, setChunkSize] = useState(512);
   const [overlapPercentage, setOverlapPercentage] = useState(25);
+  const [folderDepth, setFolderDepth] = useState(3)
   const toastId = useRef(null);
 
   const handleFileSelect = useCallback(async () => {
@@ -187,10 +192,10 @@ const CreateDBDialog = ({ open, onClose, onCreate, folderDepth, dbName = null })
     setAnchorEl(null);
   };
 
-  const toggleAdvancedSettings = () => {
-    setShowAdvanced(!showAdvanced);
+  const handleFolderDepthChange = (event) => {
+    setFolderDepth(event.target.value);
   };
-
+  
   const handleChunkSizeSliderChange = (event, newValue) => {
     setChunkSize(newValue);
   };
@@ -254,6 +259,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, folderDepth, dbName = null })
               value={newDatabaseName}
               onChange={handleNameChange}
               fullWidth
+              InputLabelProps={{ shrink: true }}
             />
           )}
           {!dbName && (
@@ -265,84 +271,96 @@ const CreateDBDialog = ({ open, onClose, onCreate, folderDepth, dbName = null })
               multiline
               rows={2}
               placeholder={t('databaseDescriptionPlaceholder')}
+              InputLabelProps={{ shrink: true }}
             />
           )}
-          <Button onClick={toggleAdvancedSettings}>
-            {showAdvanced ? t('hideAdvancedSettings') : t('showAdvancedSettings')}
-          </Button>
-          <Collapse in={showAdvanced}>
-            <StyledSliderBox>
-              <Typography id="chunk-size-slider" gutterBottom>
-                <Tooltip title={t('chunkSizeTooltip')} arrow placement="top">
-                  <span>{t('chunkSize')}</span>
-                </Tooltip>
-              </Typography>
-              <Grid container alignItems="center">
-                <StyledGridItem item xs={9}>
-                  <Slider
+          <StyledFormControl>
+            <Tooltip title={t('folderDepthTooltip')} arrow placement="top">
+              <InputLabel id="folder-depth-select-label">{t('folderDepth')}</InputLabel>
+            </Tooltip>
+            <Select
+              labelId="folder-depth-select-label"
+              value={folderDepth}
+              onChange={handleFolderDepthChange}
+              label={t('folderDepth')}
+            >
+              {[...Array(11).keys()].map((depth) => (
+                <MenuItem key={depth} value={depth}>
+                  {depth}
+                </MenuItem>
+              ))}
+            </Select>
+          </StyledFormControl>
+          <StyledSliderBox>
+            <Typography id="chunk-size-slider" gutterBottom>
+              <Tooltip title={t('chunkSizeTooltip')} arrow placement="top">
+                <span>{t('chunkSize')}</span>
+              </Tooltip>
+            </Typography>
+            <Grid container alignItems="center">
+              <StyledGridItem item xs={9}>
+                <Slider
+                  value={chunkSize}
+                  min={128}
+                  max={1024}
+                  step={128}
+                  onChange={handleChunkSizeSliderChange}
+                  aria-labelledby="chunk-size-slider"
+                  valueLabelDisplay="auto"
+                />
+              </StyledGridItem>
+              <Grid item xs={3}>
+                <Stack direction="row" alignItems="center" justifyContent="flex-end">
+                  <TextField
                     value={chunkSize}
-                    min={128}
-                    max={1024}
-                    step={128}
-                    onChange={handleChunkSizeSliderChange}
-                    aria-labelledby="chunk-size-slider"
-                    valueLabelDisplay="auto"
+                    onChange={handleChunkSizeInputChange}
+                    type="number"
+                    inputProps={{
+                      min: 128,
+                      max: 1024,
+                      step: 128,
+                    }}
+                    sx={{ width: '80px' }}
                   />
-                </StyledGridItem>
-                <Grid item xs={3}>
-                  <Stack direction="row" alignItems="center" justifyContent="flex-end">
-                    <TextField
-                      value={chunkSize}
-                      onChange={handleChunkSizeInputChange}
-                      type="number"
-                      inputProps={{
-                        min: 128,
-                        max: 1024,
-                        step: 128,
-                      }}
-                      sx={{ width: '80px' }}
-                    />
-                  </Stack>
-                </Grid>
+                </Stack>
               </Grid>
-            </StyledSliderBox>
-
-            <StyledSliderBox>
-              <Typography id="overlap-percentage-slider" gutterBottom>
-                <Tooltip title={t('overlapPercentageTooltip')} arrow placement="top">
-                  <span>{t('overlapPercentage')}</span>
-                </Tooltip>
-              </Typography>
-              <Grid container alignItems="center">
-                <StyledGridItem item xs={9}>
-                  <Slider
+            </Grid>
+          </StyledSliderBox>
+          <StyledSliderBox>
+            <Typography id="overlap-percentage-slider" gutterBottom>
+              <Tooltip title={t('overlapPercentageTooltip')} arrow placement="top">
+                <span>{t('overlapPercentage')}</span>
+              </Tooltip>
+            </Typography>
+            <Grid container alignItems="center">
+              <StyledGridItem item xs={9}>
+                <Slider
+                  value={overlapPercentage}
+                  min={0}
+                  max={50}
+                  step={5}
+                  onChange={handleOverlapPercentageSliderChange}
+                  aria-labelledby="overlap-percentage-slider"
+                  valueLabelDisplay="auto"
+                />
+              </StyledGridItem>
+              <Grid item xs={3}>
+                <Stack direction="row" alignItems="center" justifyContent="flex-end">
+                  <TextField
                     value={overlapPercentage}
-                    min={0}
-                    max={50}
-                    step={5}
-                    onChange={handleOverlapPercentageSliderChange}
-                    aria-labelledby="overlap-percentage-slider"
-                    valueLabelDisplay="auto"
+                    onChange={handleOverlapPercentageInputChange}
+                    type="number"
+                    inputProps={{
+                      min: 0,
+                      max: 50,
+                      step: 5,
+                    }}
+                    sx={{ width: '80px' }}
                   />
-                </StyledGridItem>
-                <Grid item xs={3}>
-                  <Stack direction="row" alignItems="center" justifyContent="flex-end">
-                    <TextField
-                      value={overlapPercentage}
-                      onChange={handleOverlapPercentageInputChange}
-                      type="number"
-                      inputProps={{
-                        min: 0,
-                        max: 50,
-                        step: 5,
-                      }}
-                      sx={{ width: '80px' }}
-                    />
-                  </Stack>
-                </Grid>
+                </Stack>
               </Grid>
-            </StyledSliderBox>
-          </Collapse>
+            </Grid>
+          </StyledSliderBox>
         </LeftColumn>
         <RightColumn>
           <Box display="flex" justifyContent="space-between" alignItems="center">

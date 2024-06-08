@@ -71,11 +71,11 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-const DatabaseAccordion = ({ dbName, databases, setDatabases, handleOpenDeleteDialog, folderDepth }) => {
+const DatabaseAccordion = ({ dbName, databases, setDatabases, handleOpenDeleteDialog }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [documents, setDocuments] = useState([]);
-  const [createDBDialogOpen, setCreateDBDialogOpen] = useState(false); // ダイアログ表示用の状態を追加
+  const [createDBDialogOpen, setCreateDBDialogOpen] = useState(false);
 
   const loadDocuments = async (dbName) => {
     try {
@@ -160,7 +160,6 @@ const DatabaseAccordion = ({ dbName, databases, setDatabases, handleOpenDeleteDi
         open={createDBDialogOpen}
         onClose={handleCloseCreateDBDialog}
         onCreate={handleCreateDBDialogComplete}
-        folderDepth={folderDepth}
         dbName={dbName}
       />
     </StyledAccordion>

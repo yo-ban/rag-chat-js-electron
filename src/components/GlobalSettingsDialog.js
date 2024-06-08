@@ -80,7 +80,6 @@ const GlobalSettingsDialog = ({
   initialLanguage,
   initialVectorDBSavePath,
   initialChatDataSavePath,
-  initialFolderDepth
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -97,7 +96,6 @@ const GlobalSettingsDialog = ({
   const [language, setLanguage] = useState(initialLanguage);
   const [vectorDBSavePath, setVectorDBSavePath] = useState(initialVectorDBSavePath);
   const [chatDataSavePath, setChatDataSavePath] = useState(initialChatDataSavePath);
-  const [folderDepth, setFolderDepth] = useState(initialFolderDepth);
   const [preview, setPreview] = useState('');
 
   useEffect(() => {
@@ -113,7 +111,6 @@ const GlobalSettingsDialog = ({
     setLanguage(initialLanguage);
     setVectorDBSavePath(initialVectorDBSavePath);
     setChatDataSavePath(initialChatDataSavePath);
-    setFolderDepth(initialFolderDepth);
   }, [
     initialVender,
     initialEmbeddingsVender,
@@ -127,7 +124,6 @@ const GlobalSettingsDialog = ({
     initialLanguage,
     initialVectorDBSavePath,
     initialChatDataSavePath,
-    initialFolderDepth
   ]);
 
   useEffect(() => {
@@ -141,7 +137,7 @@ const GlobalSettingsDialog = ({
   };
 
   const handleSave = () => {
-    onSave(vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemPrompt, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath, folderDepth);
+    onSave(vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemPrompt, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath);
     onClose();
   };
 
@@ -442,19 +438,6 @@ const GlobalSettingsDialog = ({
         </Box>
         <Box hidden={activeTab !== 2}>
           <StyledDialogContent>
-            <Typography variant="subtitle1">{t('createDbSettings')}</Typography>
-            <FormControl fullWidth margin="normal">
-              <Tooltip title={t('folderDepthTooltip')} arrow placement="top">
-                <StyledInputLabel id="folder-depth-label" shrink>{t('folderDepth')}</StyledInputLabel>
-              </Tooltip>
-              <TextField
-                fullWidth
-                type="number"
-                value={folderDepth}
-                onChange={(e) => setFolderDepth(e.target.value)}
-              />
-            </FormControl>
-
             <ParametersSection
               temperature={temperature}
               setTemperature={setTemperature}

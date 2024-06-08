@@ -117,7 +117,6 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
   const [language, setLanguage] = useState("ja");
   const [vectorDBSavePath, setVectorDBSavePath] = useState("./");
   const [chatDataSavePath, setChatDataSavePath] = useState("./");
-  const [folderDepth, setFolderDepth] = useState(3);
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [dbToDelete, setDbToDelete] = useState(null);
@@ -166,7 +165,6 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         setLanguage(settings.language || "ja");
         setVectorDBSavePath(settings.vectorDBSavePath || "./");
         setChatDataSavePath(settings.chatDataSavePath || "./");
-        setFolderDepth(settings.folderDepth || 3);
       } catch (error) {
         console.error('Failed to load settings:', error);
       }
@@ -174,7 +172,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
     loadSettings();
   }, []);
   
-  const saveSettings = async (vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath, folderDepth) => {
+  const saveSettings = async (vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath) => {
     setDefaultVender(vender);
     setDefaultEmbeddingsVender(embeddingsVender);
     setUseSeparateVenders(useSeparateVenders);
@@ -187,9 +185,8 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
     setLanguage(language);
     setVectorDBSavePath(vectorDBSavePath);
     setChatDataSavePath(chatDataSavePath);
-    setFolderDepth(folderDepth);
   
-    await api.saveSettings({ vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath, folderDepth });
+    await api.saveSettings({ vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath });
   };
 
   const handleTabChange = (event, newValue) => {
@@ -326,7 +323,6 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
               databases={databases}
               setDatabases={setDatabases}
               handleOpenDeleteDialog={handleOpenDeleteDialog}
-              folderDepth={folderDepth}
             />
           ))}
         </ChatListContainer>
@@ -336,7 +332,6 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         open={createDBDialogOpen}
         onClose={handleCloseCreateDBDialog}
         onCreate={(dbName) => setDatabases([...databases, dbName])}
-        folderDepth={folderDepth}
       />
 
       <Dialog
@@ -369,7 +364,6 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         initialLanguage={language}
         initialVectorDBSavePath={vectorDBSavePath}
         initialChatDataSavePath={chatDataSavePath}
-        initialFolderDepth={folderDepth}
       />
 
     </SidebarContainer>
