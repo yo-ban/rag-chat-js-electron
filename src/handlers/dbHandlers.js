@@ -158,7 +158,8 @@ ipcMain.handle('delete-database', async (event, dbName) => {
     
     const { databases, descriptions } = vectorDBService.loadDatabases();
     delete databases[dbId];
-    vectorDBService.saveDatabases(databases);
+    delete descriptions[dbId];
+    vectorDBService.saveDatabases({ databases, descriptions });
   });
 });
 
