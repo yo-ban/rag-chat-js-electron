@@ -1,5 +1,8 @@
 // 検索結果の統合とリランキング処理
 function mergeAndRerankSearchResults(searchResults, k = 6) {
+
+  console.log(`Merge and Rerank Results. k=${k}.`);
+
   // 1. 各クエリの結果をフラットな配列にまとめる
   const allResults = searchResults.flat();
 
@@ -12,7 +15,6 @@ function mergeAndRerankSearchResults(searchResults, k = 6) {
     const normalizedScore = (result[1] - minScore) / (maxScore - minScore);
     return { pageContent: result[0].pageContent, metadata: result[0].metadata, normalizedScore };
   });
-  console.log("Normalized Results:", normalizedResults);
 
   // 3. 重複のカウント
   const resultCount = {};
@@ -39,7 +41,6 @@ function mergeAndRerankSearchResults(searchResults, k = 6) {
 
   // 5. リランキング（総合スコアに基づいてソート）
   uniqueResults.sort((a, b) => b.combinedScore - a.combinedScore);
-  console.log("Unique Results after sorting:", uniqueResults);
 
   // 6. 上位k件の結果を返す
   return uniqueResults.slice(0, k).map(result => ({

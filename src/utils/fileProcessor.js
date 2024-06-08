@@ -10,7 +10,9 @@ const chardet = require('chardet');
 const iconvLite = require('iconv-lite');
 const { parse: csvParse } = require('csv-parse/sync');
 const xlsx = require('xlsx');
-const TurndownService = require('turndown').default;
+const puppeteer = require('puppeteer');
+const pdfParse = require('pdf-parse');
+// const TurndownService = require('turndown').default;
 
 const languageMapping = {
   '.cpp': 'cpp',
@@ -279,25 +281,40 @@ const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   return docs;
 };
 
+const convertHtmlToPdfBuffer = async (htmlContent) => {
+  const browser = await puppeteer.launch({ headless: 'new' });
+  const page = await browser.newPage();
+  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  const pdfBuffer = await page.pdf({ format: 'A4' });
+  await browser.close();
+  return pdfBuffer;
+};
+
+const extractTextFromPdfBuffer = async (pdfBuffer) => {
+  const data = await pdfParse(pdfBuffer);
+  return data.text;
+};
+
 const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);
   const content = readFileWithEncoding(filePath);
-  
-  const turndownService = new TurndownService();
-  const markdown = turndownService.turndown(content);
-  const sections = splitMarkdownByHeadings(markdown);
+
+  // HTMLをPDFバッファに変換
+  const pdfBuffer = await convertHtmlToPdfBuffer(content);
+
+  // PDFバッファからテキストを抽出
+  const extractedText = await extractTextFromPdfBuffer(pdfBuffer);
 
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
-  const docs = sections.map((section, index) => new Document({
-    pageContent: cleanAndNormalizeText(section),
+  const docs = [new Document({
+    pageContent: cleanAndNormalizeText(extractedText),
     metadata: {
       source: filePath,
       timestamp: new Date().toISOString(),
-      sectionIndex: index + 1,
     },
-  }));
+  })];
 
   const chunks = await splitDocuments(docs, chunkSize, overlapPercentage);
   chunks.forEach((chunk) => {
