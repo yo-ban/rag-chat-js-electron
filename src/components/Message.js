@@ -145,7 +145,7 @@ function Message({ message }) {
   const messageContentRef = useRef(null);
 
   const md = new Remarkable({
-    breaks: true,
+    // breaks: true,
     html: true,  
     highlight: function (str, lang) {
       if (lang && hljs.getLanguage(lang)) {
