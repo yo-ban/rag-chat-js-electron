@@ -204,9 +204,9 @@ ${topic}`
   - These aspects should be tailored to the specific context and requirements of the user's question.
   - Ensure that these aspects cover various dimensions relevant to the question.
 
-After completing the analysis, provide a structured summary of your findings in the format below:
+Provide your analysis in the following format:
 
-## Analysis Format:
+## Analysis Output Format:
 1. **Core Question**:
   - [Core question summary]
 
@@ -260,6 +260,10 @@ ${chatHistoryText}
 
 ### User's question:
 ${latestQuestion.content}
+
+---
+
+Now, please start your analysis by following the Analysis Output Format.
 
 ### Analysis:
 `;
