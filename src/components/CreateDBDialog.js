@@ -9,7 +9,9 @@ import api from '../services/api';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
+    width: '65%',
     minWidth: '800px',
+    maxWidth: 'none',
   },
 }));
 

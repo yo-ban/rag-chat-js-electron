@@ -23,7 +23,9 @@ import { styled } from '@mui/material/styles';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
+    width: '65%',
     minWidth: '400px',
+    maxWidth: 'none',
   },
 }));
 
