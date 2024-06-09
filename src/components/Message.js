@@ -6,6 +6,7 @@ import hljs from 'highlight.js';
 import '../assets/code-theme.css';
 import DOMPurify from 'dompurify';
 import { Remarkable } from 'remarkable'; 
+import parse from 'html-react-parser';
 
 const escapeHtml = (unsafe) => {
   return unsafe
@@ -152,7 +153,7 @@ function Message({ message }) {
     },
   });
 
-  const renderedContent = DOMPurify.sanitize(md.render(content));
+  const sanitizedContent = DOMPurify.sanitize(md.render(content));
 
   const handleCopyClick = (event) => {
     event.stopPropagation();
@@ -177,14 +178,16 @@ function Message({ message }) {
         button.removeEventListener('click', handleCopyClick);
       });
     };
-  }, [renderedContent]);
+  }, [sanitizedContent]);
 
   return (
     <MessageContainer role={role}>
       <MessageHeader>
         {role === 'user' && <UserIcon />}
         {role === 'assistant' && <BotIcon />}
-        <MessageContent dangerouslySetInnerHTML={{ __html: renderedContent }} ref={messageContentRef} />
+        <MessageContent ref={messageContentRef}>
+          {parse(sanitizedContent)}
+        </MessageContent>
       </MessageHeader>
       {role === 'assistant' && (
         <CopyToClipboard text={content}>
