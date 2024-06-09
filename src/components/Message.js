@@ -118,6 +118,13 @@ const MessageContent = styled(Box)(({ theme }) => ({
     padding: '0.2em 0.4em',
     fontFamily: 'Consolas, "BIZ UDGothic", Monaco, "Andale Mono", "Ubuntu Mono", monospace',
     fontSize: '0.9em',
+  },
+  '& blockquote, & li > blockquote': {
+    borderLeft: `4px solid ${theme.palette.mode === 'dark' ? '#2e2e2e' : '#ddd'}`,
+    paddingLeft: '1em',
+    margin: '0 0 1em 0',
+    color: theme.palette.text.secondary,
+    backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f9f9f9',
   }
 }));
 
