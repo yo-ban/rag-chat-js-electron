@@ -48,6 +48,11 @@ electron-builderで実行可能ファイルを作成するには、以下のコ�
 npm run dist
 ```
 
+## TODO
+- [x] Markdownレンダリング
+- [ ] メッセージの編集・削除
+- [ ] WebpackからViteに移行したい
+
 ---
 
 ライセンス

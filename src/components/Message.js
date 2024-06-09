@@ -1,16 +1,29 @@
-import React from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import React, { useEffect, useRef } from 'react';
 import { Box, styled, IconButton, Tooltip } from '@mui/material';
 import CopyIcon from '@mui/icons-material/FileCopyOutlined';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
+import hljs from 'highlight.js';
+import '../assets/code-theme.css';
+import DOMPurify from 'dompurify';
+import { Remarkable } from 'remarkable'; 
 
+const escapeHtml = (unsafe) => {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
+// スタイルの設定はそのまま
 const MessageContainer = styled(Box)(({ theme, role }) => ({
   padding: '10px',
   borderRadius: '8px',
   maxWidth: '100%',
   fontSize: '14px',
   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+  lineHeight: '1',
   clear: 'both',
   display: 'flex',
   position: 'relative',
@@ -25,32 +38,86 @@ const MessageContainer = styled(Box)(({ theme, role }) => ({
 const MessageHeader = styled(Box)({
   display: 'flex',
   alignItems: 'flex-start',
-  flexDirection: 'row',
   width: '100%',
 });
 
 const UserIcon = styled(Box)(({ theme }) => ({
+  display: 'flex',
   width: '24px',
   height: '24px',
   borderRadius: '50%',
   marginRight: '8px',
+  flexDirection: 'column',
   flexShrink: 0,
+  lineHeight: '1',
   backgroundColor: theme.palette.divider,
 }));
 
 const BotIcon = styled(Box)(({ theme }) => ({
+  display: 'flex',
   width: '24px',
   height: '24px',
   borderRadius: '50%',
   marginRight: '8px',
+  flexDirection: 'column',
   flexShrink: 0,
+  lineHeight: '1',
   backgroundColor: theme.palette.primary.main,
 }));
 
 const MessageContent = styled(Box)(({ theme }) => ({
+  display: 'inline-block',
   wordBreak: 'break-all',
   color: theme.palette.text.primary,
+  marginBottom: "0px",
+  lineHeight: '0',
+  maxWidth: '95%',
   whiteSpace: 'pre-wrap',
+  '& code': {
+    fontFamily: 'Consolas, "BIZ UDGothic", Monaco, "Andale Mono", "Ubuntu Mono", monospace',
+    fontSize: "0.95em"
+  },
+  '& p': {
+    display: 'inline-block',
+    marginBlockStart: '0.1em',
+    marginBlockEnd: '0.5em',
+    lineHeight: '1.5'
+  },
+  '& ul': {
+    margin: '0px', 
+    marginBlockEnd: '0.5em',
+    padding: '0px 0px 0px 20px',
+    listStylePosition: 'inside', 
+    lineHeight: '0',
+  },
+  '& ol': {
+    margin: '3px',
+    marginBlockEnd: '0.5em',
+    padding: '0px 20px 0px 20px',
+    listStylePosition: 'inside',
+    lineHeight: '0'
+  },
+  '& li': {
+    margin: '0px',
+    padding: '0px',
+    lineHeight: '1.5',
+    marginBlockEnd: '0.5em',
+  },
+  '& li > p': {
+    marginBlockEnd: '0.2em',
+  },
+  '& pre': {
+    marginBlockStart: '0.5em',
+    marginBlockEnd: '0.5em',
+  },
+  '& li > code, & p > code': {
+    backgroundColor: theme.palette.mode === 'dark' ? '#2e2e2e' : '#f5f5f5',
+    color: theme.palette.mode === 'dark' ? '#f5f5f5' : '#b71c1c',
+    borderRadius: '3px',
+    padding: '0.2em 0.4em',
+    fontFamily: 'Consolas, "BIZ UDGothic", Monaco, "Andale Mono", "Ubuntu Mono", monospace',
+    fontSize: '0.9em',
+  }
 }));
 
 const CopyButton = styled(IconButton)(({ theme }) => ({
@@ -60,43 +127,70 @@ const CopyButton = styled(IconButton)(({ theme }) => ({
   padding: '2px',
   color: theme.palette.text.secondary,
   display: 'none',
+  '&:hover': {
+    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+  },
 }));
 
 function Message({ message }) {
   const { role, content } = message;
+  const messageContentRef = useRef(null);
 
-  const codeBlockRegex = /```([\s\S]*?)```/g;
-  const messageParts = content.split(codeBlockRegex);
+  const md = new Remarkable({
+    breaks: true,
+    html: true,  
+    highlight: function (str, lang) {
+      if (lang && hljs.getLanguage(lang)) {
+        try {
+          const code = hljs.highlight(str, { language: lang }).value;
+          return `<pre class="hljs"><div class="code-header"><span class="language">${lang}</span><button class="copy-button">Copy</button></div><code>${code}</code></pre>`;
+        } catch (error) {
+          console.error('Error highlighting code:', error);
+        }
+      }
+      return `<pre class="hljs"><div class="code-header"><span class="language">Code</span><button class="copy-button">Copy</button></div><code>${escapeHtml(str)}</code></pre>`;
+    },
+  });
+
+  const renderedContent = DOMPurify.sanitize(md.render(content));
+
+  const handleCopyClick = (event) => {
+    event.stopPropagation();
+    const codeElement = event.target.parentNode.nextElementSibling;
+    const code = codeElement.textContent;
+    navigator.clipboard.writeText(code);
+    event.target.textContent = 'Copied!';
+    setTimeout(() => {
+      event.target.textContent = 'Copy';
+    }, 1000);
+  };
+
+  useEffect(() => {
+    const messageContentElement = messageContentRef.current;
+    const copyButtons = messageContentElement.querySelectorAll('.copy-button');
+    copyButtons.forEach((button) => {
+      button.addEventListener('click', handleCopyClick);
+    });
+
+    return () => {
+      copyButtons.forEach((button) => {
+        button.removeEventListener('click', handleCopyClick);
+      });
+    };
+  }, [renderedContent]);
 
   return (
     <MessageContainer role={role}>
       <MessageHeader>
         {role === 'user' && <UserIcon />}
         {role === 'assistant' && <BotIcon />}
-        <MessageContent>
-          {messageParts.map((part, index) => {
-            if (index % 2 === 1) {
-              return (
-                <SyntaxHighlighter
-                  language="javascript"
-                  style={atomDark}
-                  key={index}
-                  lineProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
-                  wrapLines={true}
-                >
-                  {part.trim()}
-                </SyntaxHighlighter>
-              );
-            }
-            return <span key={index}>{part}</span>;
-          })}
-        </MessageContent>
+        <MessageContent dangerouslySetInnerHTML={{ __html: renderedContent }} ref={messageContentRef} />
       </MessageHeader>
       {role === 'assistant' && (
         <CopyToClipboard text={content}>
           <Tooltip title="Copy to Clipboard" placement="top">
             <CopyButton className="copy-button" aria-label="copy">
-              <CopyIcon fontSize="small"/>
+              <CopyIcon fontSize="small" />
             </CopyButton>
           </Tooltip>
         </CopyToClipboard>
