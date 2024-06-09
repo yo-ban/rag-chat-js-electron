@@ -4,7 +4,6 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { CssBaseline, Drawer, Box, CircularProgress, Backdrop } from '@mui/material';
 import { ThemeProvider as MuiThemeProvider, createTheme, styled } from '@mui/material/styles';
-import { ThemeProvider } from 'styled-components';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import api from './services/api';
@@ -257,47 +256,45 @@ function App() {
 
   return (
     <MuiThemeProvider theme={theme}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AppContainer>
-          <ToastContainer />
-          <Drawer anchor="left" open={isDrawerOpen} onClose={toggleDrawer(false)}>
-            <Sidebar
-              chatList={chatList}
-              setActiveChat={handleActiveChatChange}
-              createNewChat={createNewChat}
-              loadChats={loadChats}
-              selectedChatId={activeChat ? activeChat.id : null}
-              databases={databases}
-              setDatabases={setDatabases}
-              toggleTheme={toggleTheme}
-            />
-          </Drawer>
-          <MainContainer>
-            <Header
-              key={activeChat ? activeChat.id : 'new'}
-              updateChat={updateChat}
-              toggleDrawer={toggleDrawer}
-              activeChat={activeChat}
-              databases={databases}
-            />
-            <ContentContainer>
-              {activeChat && (
-                <ChatBox
-                  chatId={activeChat.id}
-                  chatTitle={activeChat.name}
-                  k={activeChat.searchResultsLimit}
-                  updateChat={updateChat}
-                  activeDbId={activeDbId}
-                />
-              )}
-            </ContentContainer>
-          </MainContainer>
-        </AppContainer>
-        <Backdrop open={isLoading} style={{ zIndex: 1300, color: '#fff' }}>
-          <CircularProgress color="inherit" />
-        </Backdrop>
-      </ThemeProvider>
+      <CssBaseline />
+      <AppContainer>
+        <ToastContainer />
+        <Drawer anchor="left" open={isDrawerOpen} onClose={toggleDrawer(false)}>
+          <Sidebar
+            chatList={chatList}
+            setActiveChat={handleActiveChatChange}
+            createNewChat={createNewChat}
+            loadChats={loadChats}
+            selectedChatId={activeChat ? activeChat.id : null}
+            databases={databases}
+            setDatabases={setDatabases}
+            toggleTheme={toggleTheme}
+          />
+        </Drawer>
+        <MainContainer>
+          <Header
+            key={activeChat ? activeChat.id : 'new'}
+            updateChat={updateChat}
+            toggleDrawer={toggleDrawer}
+            activeChat={activeChat}
+            databases={databases}
+          />
+          <ContentContainer>
+            {activeChat && (
+              <ChatBox
+                chatId={activeChat.id}
+                chatTitle={activeChat.name}
+                k={activeChat.searchResultsLimit}
+                updateChat={updateChat}
+                activeDbId={activeDbId}
+              />
+            )}
+          </ContentContainer>
+        </MainContainer>
+      </AppContainer>
+      <Backdrop open={isLoading} style={{ zIndex: 1300, color: '#fff' }}>
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </MuiThemeProvider>
   );
 }
