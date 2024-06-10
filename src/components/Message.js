@@ -207,8 +207,10 @@ function Message({ message }) {
         {left: '$$', right: '$$', display: true},
         {left: '$', right: '$', display: false},
         {left: '\\(', right: '\\)', display: false},
-        {left: '\\[', right: '\\]', display: true}
+        {left: '\\[', right: '\\]', display: true},
+        {left: "\[", right: "\]", display: true }
       ],
+      ignoredTags: ["code"],
       throwOnError: false
     });
 
