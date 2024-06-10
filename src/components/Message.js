@@ -7,6 +7,8 @@ import '../assets/code-theme.css';
 import DOMPurify from 'dompurify';
 import { Remarkable } from 'remarkable'; 
 import parse from 'html-react-parser';
+import 'katex/dist/katex.min.css';
+import renderMathInElement from 'katex/contrib/auto-render';
 
 const escapeHtml = (unsafe) => {
   return unsafe
@@ -175,6 +177,16 @@ function Message({ message }) {
 
   useEffect(() => {
     const messageContentElement = messageContentRef.current;
+    renderMathInElement(messageContentElement, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\(', right: '\\)', display: false},
+        {left: '\\[', right: '\\]', display: true}
+      ],
+      throwOnError: false
+    });
+
     const copyButtons = messageContentElement.querySelectorAll('.copy-button');
     copyButtons.forEach((button) => {
       button.addEventListener('click', handleCopyClick);
