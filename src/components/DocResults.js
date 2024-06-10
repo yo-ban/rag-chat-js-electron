@@ -10,11 +10,12 @@ const ResultsContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexWrap: 'wrap',
   gap: theme.spacing(1),
+  fontFamily: "inherit",
   marginBottom: '15px',
 }));
 
 const DocCard = styled(Card)(({ theme }) => ({
-  flex: '1 1 calc(33.333% - 16px)', // 3列表示
+  flex: '1 1 calc(33.333% - 16px)',
   minWidth: 110,
   maxWidth: 200,
   backgroundColor: theme.palette.background.paper,
@@ -64,7 +65,7 @@ const ModalContent = styled(Box)(({ theme }) => ({
   transform: 'translate(-50%, -50%)',
   width: '70%',
   maxHeight: '85%',
-  minHeight: '50%',
+  minHeight: '65%',
   overflowY: 'auto',
   backgroundColor: theme.palette.background.paper,
   boxShadow: theme.shadows[5],
@@ -84,6 +85,7 @@ const FileTitle = styled(Typography)(({ theme }) => ({
 const ModalTitle = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(2),
   fontWeight: 'bold',
+  fontFamily: "inherit",
   color: theme.palette.text.primary,
 }));
 
@@ -99,14 +101,21 @@ function DocResults({ results }) {
   const [open, setOpen] = useState(false);
   const [modalContent, setModalContent] = useState([]);
   const [tabValue, setTabValue] = useState(0);
+  const [modalFileName, setModalFileName] = useState('');
 
-  const handleOpen = (data) => {
+  const excludedFields = ['chunkId', 'source']; 
+
+  const handleOpen = (data, fileName) => {
     setModalContent(data);
+    setModalFileName(fileName);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
+    setTabValue(0);
+    setModalContent([]);
+    setModalFileName("");
   };
 
   const handleTabChange = (event, newValue) => {
@@ -151,11 +160,17 @@ function DocResults({ results }) {
 
           const modalData = fileResults.map((result) => {
             const { pageContent, combinedScore, metadata = {}, originalIndex } = result;
+            const filteredMetadata = Object.keys(metadata)
+              .filter(key => !excludedFields.includes(key))
+              .reduce((obj, key) => {
+                obj[key] = metadata[key];
+                return obj;
+              }, {});
+  
             return {
               pageContent,
               combinedScore,
-              metadata,
-              source,
+              metadata: filteredMetadata,
               originalIndex
             };
           });
@@ -181,7 +196,7 @@ function DocResults({ results }) {
                   </Tooltip>
                   <Tooltip title={t('viewSearchResults')}>
                     <StyledIcon>
-                      <ZoomInIcon fontSize="medium" onClick={() => handleOpen(modalData)} />
+                      <ZoomInIcon fontSize="medium" onClick={() => handleOpen(modalData, fileName)} />
                     </StyledIcon>
                   </Tooltip>
                 </IconContainer>
@@ -205,7 +220,7 @@ function DocResults({ results }) {
       >
         <Fade in={open}>
           <ModalContent>
-            <ModalTitle id="transition-modal-title">{t('documentContent')}</ModalTitle>
+            <ModalTitle id="transition-modal-title">{t('documentContent')}: {modalFileName}</ModalTitle>
             <Tabs
               value={tabValue}
               onChange={handleTabChange}

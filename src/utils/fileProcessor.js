@@ -178,7 +178,7 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
     return new Document({
       pageContent: cleanAndNormalizeText(data.pageContent),
       metadata: {
-        ...data.metadata,
+        totalPages: data.metadata.totalPages,
         source: filePath,
       },
     });
