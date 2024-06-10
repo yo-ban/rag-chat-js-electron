@@ -6,9 +6,10 @@ import hljs from 'highlight.js';
 import '../assets/code-theme.css';
 import DOMPurify from 'dompurify';
 import { Remarkable } from 'remarkable'; 
-import parse from 'html-react-parser';
+import parse, { domToReact } from 'html-react-parser';
 import 'katex/dist/katex.min.css';
 import renderMathInElement from 'katex/contrib/auto-render';
+import api from '../services/api';
 
 const escapeHtml = (unsafe) => {
   return unsafe
@@ -90,14 +91,14 @@ const MessageContent = styled(Box)(({ theme }) => ({
     margin: '0px', 
     marginBlockEnd: '0.5em',
     padding: '0px 0px 0px 20px',
-    listStylePosition: 'inside', 
+    listStylePosition: 'outside', 
     lineHeight: '0',
   },
   '& ol': {
     margin: '3px',
     marginBlockEnd: '0.5em',
     padding: '0px 20px 0px 20px',
-    listStylePosition: 'inside',
+    listStylePosition: 'outside',
     lineHeight: '0'
   },
   '& li': {
@@ -105,8 +106,12 @@ const MessageContent = styled(Box)(({ theme }) => ({
     padding: '0px',
     lineHeight: '1.5',
     marginBlockEnd: '0.5em',
+    '& > *': {
+      verticalAlign: 'top',
+    }
   },
   '& li > p': {
+    marginBlockStart: '0em',
     marginBlockEnd: '0.2em',
   },
   '& pre': {
@@ -147,8 +152,7 @@ function Message({ message }) {
   const messageContentRef = useRef(null);
 
   const md = new Remarkable({
-    // breaks: true,
-    html: true,  
+    html: true,
     highlight: function (str, lang) {
       if (lang && hljs.getLanguage(lang)) {
         try {
@@ -175,6 +179,27 @@ function Message({ message }) {
     }, 1000);
   };
 
+  const handleClickLink = (event, url) => {
+    event.preventDefault();
+    console.log("click link", url);
+    api.openLink(url);
+  };
+
+  const replace = (node) => {
+    if (node.name === 'a' && node.attribs.href) {
+      return (
+        <a
+          {...node.attribs}
+          onClick={(event) => handleClickLink(event, node.attribs.href)}
+        >
+          {domToReact(node.children)}
+        </a>
+      );
+    }
+  };
+
+  const parsedContent = parse(sanitizedContent, { replace });
+  
   useEffect(() => {
     const messageContentElement = messageContentRef.current;
     renderMathInElement(messageContentElement, {
@@ -205,7 +230,7 @@ function Message({ message }) {
         {role === 'user' && <UserIcon />}
         {role === 'assistant' && <BotIcon />}
         <MessageContent ref={messageContentRef}>
-          {parse(sanitizedContent)}
+          {parsedContent}
         </MessageContent>
       </MessageHeader>
       {role === 'assistant' && (

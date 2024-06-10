@@ -25,6 +25,7 @@ const api = {
   loadSettings: () => window.electron.loadSettings(),
   saveSettings: (settings) => window.electron.saveSettings(settings),
   openLocalFile: (filePath) => window.electron.openLocalFile(filePath),
+  openLink: (url) => window.electron.openLink(url),
   onDocMessage: (callback) => window.electron.onDocMessage(callback),
   removeListener: (name, callback) => window.electron.removeListener(name, callback),
 };

@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('electron', {
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   openLocalFile: (filePath) => ipcRenderer.invoke('open-local-file', filePath),
+  openLink: (url) => ipcRenderer.invoke('open-link', url),
   onDocMessage: (callback) => ipcRenderer.on('doc-message', (event, content) => callback(content)),
   removeListener: (name, callback) => ipcRenderer.removeListener(name, callback),
 });

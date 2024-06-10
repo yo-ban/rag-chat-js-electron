@@ -108,6 +108,8 @@ ipcMain.handle('save-settings', async (event, settings) => {
 
 ipcMain.handle('open-local-file', async (event, filePath) => shell.openPath(filePath));
 
+ipcMain.handle('open-link', async (event, url) => shell.openExternal(url));
+
 require('./handlers/chatHandlers');
 require('./handlers/dbHandlers');
 
