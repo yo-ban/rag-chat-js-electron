@@ -113,7 +113,7 @@ function DocResults({ results }) {
     setTabValue(newValue);
   };
 
-  const groupedResults = results.reduce((acc, result) => {
+  const groupedResults = results.reduce((acc, result, index) => {
     const { metadata = {} } = result;
     const { source = t('unknownSource') } = metadata;
 
@@ -121,7 +121,7 @@ function DocResults({ results }) {
     if (!acc[fileName]) {
       acc[fileName] = [];
     }
-    acc[fileName].push(result);
+    acc[fileName].push({ ...result, originalIndex: index });
     return acc;
   }, {});
 
@@ -150,12 +150,13 @@ function DocResults({ results }) {
           };
 
           const modalData = fileResults.map((result) => {
-            const { pageContent, combinedScore, metadata = {} } = result;
+            const { pageContent, combinedScore, metadata = {}, originalIndex } = result;
             return {
               pageContent,
               combinedScore,
               metadata,
-              source
+              source,
+              originalIndex
             };
           });
 
@@ -212,8 +213,8 @@ function DocResults({ results }) {
               variant="scrollable"
               scrollButtons="auto"
             >
-              {modalContent.map((_, index) => (
-                <Tab label={`${t('result')} ${index + 1}`} key={index} />
+              {modalContent.map((content, index) => (
+                <Tab label={`${t('result')} ${content.originalIndex + 1}`} key={index} />
               ))}
             </Tabs>
             {modalContent.map((content, index) => (
