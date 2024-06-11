@@ -41,6 +41,7 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');  
+  const [resendMessage, setResendMessage] = useState(null);
   const messageEndRef = useRef(null);
 
   useEffect(() => {
@@ -171,12 +172,12 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     setIsTyping(true);
     setIsSending(true);
 
-    const { transformedQueries, mergedResults } = await performSearch(newMessages);
-
     try {
+      const { transformedQueries, mergedResults } = await performSearch(newMessages);
       setStatusMessage(t('sendingMessage'));
       await api.sendMessage(newMessages, chatId, mergedResults, transformedQueries);
       console.log('Message sent:', { newMessages, mergedResults });
+
       updateChat({
         id: chatId,
         name: chatTitle,
@@ -197,10 +198,45 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     setStatusMessage('');    
   }, [input, messages, activeDbId, chatId, chatTitle, updateChat, lastMessage, t]);
 
-  const handleRetry = () => {
-    sendMessage(lastMessage, true);
-  };
+  const handleRetry = useCallback(async () => {
+    try {
+      await sendMessage(lastMessage, true);
+    } catch (error) {
+      console.error('Error retrying message:', error);
+      toast.error(t('errorRetryingMessage'));
+    }
+  }, [lastMessage, sendMessage, t]);
+    
+  const handleDelete = useCallback(async (index) => {
+    try {
+      const updatedMessages = await api.deleteMessages(chatId, index);
+      setMessages(updatedMessages);
+    } catch (error) {
+      console.error('Error deleting messages:', error);
+      toast.error(t('errorDeletingMessages'));
+    }
+  }, [chatId, t]);
   
+  const handleResendMessage = useCallback(async (index) => {
+    try {
+      const resendMessage = messages[index];
+      const updatedMessages = messages.slice(0, index);
+      setMessages(updatedMessages);
+      setResendMessage(resendMessage.content);
+    } catch (error) {
+      console.error('Error resend message:', error);
+      toast.error(t('errorResendMessage'));
+    }
+  }, [messages, setMessages, setResendMessage, t]);
+
+    // メッセージの変更を監視
+  useEffect(() => {
+    if (resendMessage !== null) {
+      setResendMessage(null);
+      sendMessage(resendMessage);
+    }
+  }, [messages, resendMessage, sendMessage]);
+    
   return (
     <ChatBoxContainer>
       <ErrorNotification error={error} onRetry={handleRetry} />
@@ -215,7 +251,11 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
               {msg.role === 'doc' ? (
                 <DocResults results={msg.results} />
               ) : (
-                <Message message={msg} />
+                <Message 
+                  message={msg} 
+                  onDelete={() => handleDelete(index)} 
+                  onResend={() => handleResendMessage(index)} 
+                />
               )}
             </div>
           );

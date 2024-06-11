@@ -1,6 +1,7 @@
 // ElectronのIPC通信を抽象化するサービス
 const api = {
   sendMessage: (messages, chatId, context, context2) => window.electron.sendMessage(messages, chatId, context, context2),
+  deleteMessages: (chatId, startIndex) => window.electron.deleteMessages(chatId, startIndex),
   generateChatName: (messages, chatId) => window.electron.generateChatName(messages, chatId),
   loadChats: () => window.electron.loadChats(),
   loadChatHistory: (chatId) => window.electron.loadChatHistory(chatId),

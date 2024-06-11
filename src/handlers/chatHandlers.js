@@ -54,6 +54,17 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], con
   });
 });
 
+ipcMain.handle('delete-messages', async (event, chatId, startIndex) => {
+  return handleIpcMainEvent(event, async () => {
+    const chatData = await chatService.loadChatData(chatId);
+    if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
+
+    const updatedMessages = chatData.messages.slice(0, startIndex);
+    await chatService.saveChatMessage(chatId, updatedMessages);
+    return updatedMessages;
+  });
+});
+
 ipcMain.handle('generate-chat-name', async (event, messages, chatId) => {
   return handleIpcMainEvent(event, async () => {
     const chatData = await chatService.loadChatData(chatId);

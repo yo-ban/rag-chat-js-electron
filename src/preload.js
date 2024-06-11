@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
   sendMessage: (messages, chatId, context, context2) => ipcRenderer.invoke('send-message', messages, chatId, context, context2),
+  deleteMessages: (chatId, startIndex) => ipcRenderer.invoke('delete-messages', chatId, startIndex),
   generateChatName: (messages, chatId) => ipcRenderer.invoke('generate-chat-name', messages, chatId),
   loadChats: () => ipcRenderer.invoke('load-chats'),
   loadChatHistory: (chatId) => ipcRenderer.invoke('load-chat-history', chatId),

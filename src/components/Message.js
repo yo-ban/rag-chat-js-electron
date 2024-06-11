@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { Box, styled, IconButton, Tooltip } from '@mui/material';
+import React, { useEffect, useRef, useState } from 'react';
+import { Box, styled, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
+import { useTranslation } from 'react-i18next';  
 import CopyIcon from '@mui/icons-material/FileCopyOutlined';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ReplayIcon from '@mui/icons-material/Replay';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import hljs from 'highlight.js';
 import '../assets/code-theme.css';
@@ -20,7 +23,6 @@ const escapeHtml = (unsafe) => {
     .replace(/'/g, "&#039;");
 };
 
-// スタイルの設定はそのまま
 const MessageContainer = styled(Box)(({ theme, role }) => ({
   padding: '10px',
   borderRadius: '8px',
@@ -31,10 +33,12 @@ const MessageContainer = styled(Box)(({ theme, role }) => ({
   clear: 'both',
   display: 'flex',
   position: 'relative',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
   backgroundColor: role === 'user' ? theme.palette.background.assistantMessage : theme.palette.background.userMessage,
   color: 'black',
   border: role === 'user' ? 'none' : `1px solid ${theme.palette.border.main}`,
-  '&:hover .copy-button': {
+  '&:hover .copy-button, &:hover .delete-button, &:hover .retry-button': {
     display: 'inline-flex',
   },
 }));
@@ -135,10 +139,15 @@ const MessageContent = styled(Box)(({ theme }) => ({
   }
 }));
 
-const CopyButton = styled(IconButton)(({ theme }) => ({
+const ButtonContainer = styled(Box)({
   position: 'absolute',
   top: '4px',
   right: '4px',
+  display: 'flex',
+  gap: '4px',
+});
+
+const CopyButton = styled(IconButton)(({ theme }) => ({
   padding: '2px',
   color: theme.palette.text.secondary,
   display: 'none',
@@ -147,10 +156,48 @@ const CopyButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-function Message({ message }) {
+const DeleteButton = styled(IconButton)(({ theme }) => ({
+  padding: '2px',
+  color: theme.palette.text.secondary,
+  display: 'none',
+  '&:hover': {
+    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+  },
+}));
+
+const RetryButton = styled(IconButton)(({ theme }) => ({
+  padding: '2px',
+  color: theme.palette.text.secondary,
+  display: 'none',
+  '&:hover': {
+    color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+  },
+}));
+
+function Message({ message, onDelete, onResend }) {
+  const { t } = useTranslation();
+
   const { role, content } = message;
   const messageContentRef = useRef(null);
-
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openRetryDialog, setOpenRetryDialog] = useState(false);
+  
+  const handleOpenDeleteDialog = () => setOpenDeleteDialog(true);
+  const handleCloseDeleteDialog = () => setOpenDeleteDialog(false);
+  
+  const handleOpenRetryDialog = () => setOpenRetryDialog(true);
+  const handleCloseRetryDialog = () => setOpenRetryDialog(false);
+  
+  const handleConfirmDelete = () => {
+    onDelete();
+    handleCloseDeleteDialog();
+  };
+  
+  const handleConfirmResend = () => {
+    onResend();
+    handleCloseRetryDialog();
+  };
+  
   const md = new Remarkable({
     html: true,
     highlight: function (str, lang) {
@@ -208,8 +255,6 @@ function Message({ message }) {
         {left: '$', right: '$', display: false},
         {left: '\\(', right: '\\)', display: false},
         {left: '\\[', right: '\\]', display: true},
-        {left: "\[", right: "\]", display: true },
-        {left: '\(', right: '\)', display: false},
       ],
       ignoredTags: ["code"],
       throwOnError: false
@@ -236,15 +281,65 @@ function Message({ message }) {
           {parsedContent}
         </MessageContent>
       </MessageHeader>
-      {role === 'assistant' && (
-        <CopyToClipboard text={content}>
-          <Tooltip title="Copy to Clipboard" placement="top">
-            <CopyButton className="copy-button" aria-label="copy">
-              <CopyIcon fontSize="small" />
-            </CopyButton>
+      <ButtonContainer>
+        {role === 'assistant' && (
+          <CopyToClipboard text={content}>
+            <Tooltip title="Copy to Clipboard" placement="top">
+              <CopyButton className="copy-button" aria-label="copy">
+                <CopyIcon fontSize="small" />
+              </CopyButton>
+            </Tooltip>
+          </CopyToClipboard>
+        )}
+        <Tooltip title="Delete Message" placement="top">
+          <DeleteButton className="delete-button" aria-label="delete" onClick={handleOpenDeleteDialog}>
+            <DeleteIcon fontSize="small" />
+          </DeleteButton>
+        </Tooltip>
+        {role === 'user' && (
+          <Tooltip title="Retry Message" placement="top">
+            <RetryButton className="retry-button" aria-label="retry" onClick={handleOpenRetryDialog}>
+              <ReplayIcon fontSize="small" />
+            </RetryButton>
           </Tooltip>
-        </CopyToClipboard>
-      )}
+        )}
+      </ButtonContainer>
+
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{t('deleteMessage')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {t('areYouSureDeleteMessage')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} color="primary">{t('cancel')}</Button>
+          <Button onClick={handleConfirmDelete} color="primary" autoFocus>{t('delete')}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={openRetryDialog}
+        onClose={handleCloseRetryDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{t('resendMessage')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {t('areYouSureResendMessage')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRetryDialog} color="primary">{t('cancel')}</Button>
+          <Button onClick={handleConfirmResend} color="primary" autoFocus>{t('resend')}</Button>
+        </DialogActions>
+      </Dialog>
     </MessageContainer>
   );
 }
