@@ -17,6 +17,7 @@
 - temperature, max_tokens設定(全体既定値, チャット毎)
 - トピック(会話の背景情報 等)設定(チャット毎)
 - Markdown/シンタックスハイライト/数式(LaTex)レンダリング
+- メッセージ削除及び再送信
 - etc
 
 ## 対応API
@@ -51,7 +52,7 @@ npm run dist
 
 ## TODO
 - [x] Markdownレンダリング
-- [ ] メッセージの編集・削除
+- [x] メッセージの編集・削除
 - [ ] WebpackからViteに移行したい
 
 ---
