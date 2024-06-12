@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, styled, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
+import { Box, Typography, styled, IconButton, Tooltip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Button } from '@mui/material';
 import { useTranslation } from 'react-i18next';  
 import CopyIcon from '@mui/icons-material/FileCopyOutlined';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -273,74 +273,68 @@ function Message({ message, onDelete, onResend }) {
   }, [sanitizedContent]);
 
   return (
-    <MessageContainer role={role}>
-      <MessageHeader>
-        {role === 'user' && <UserIcon />}
-        {role === 'assistant' && <BotIcon />}
-        <MessageContent ref={messageContentRef}>
-          {parsedContent}
-        </MessageContent>
-      </MessageHeader>
-      <ButtonContainer>
-        {role === 'assistant' && (
-          <CopyToClipboard text={content}>
-            <Tooltip title="Copy to Clipboard" placement="top">
-              <CopyButton className="copy-button" aria-label="copy">
-                <CopyIcon fontSize="small" />
-              </CopyButton>
-            </Tooltip>
-          </CopyToClipboard>
-        )}
-        <Tooltip title="Delete Message" placement="top">
-          <DeleteButton className="delete-button" aria-label="delete" onClick={handleOpenDeleteDialog}>
-            <DeleteIcon fontSize="small" />
-          </DeleteButton>
-        </Tooltip>
-        {role === 'user' && (
-          <Tooltip title="Retry Message" placement="top">
-            <RetryButton className="retry-button" aria-label="retry" onClick={handleOpenRetryDialog}>
-              <ReplayIcon fontSize="small" />
-            </RetryButton>
+    <>
+      <MessageContainer role={role}>
+        <MessageHeader>
+          {role === 'user' && <UserIcon />}
+          {role === 'assistant' && <BotIcon />}
+          <MessageContent ref={messageContentRef}>
+            {parsedContent}
+          </MessageContent>
+        </MessageHeader>
+        <ButtonContainer>
+          {role === 'assistant' && (
+            <CopyToClipboard text={content}>
+              <Tooltip title="Copy to Clipboard" placement="top">
+                <CopyButton className="copy-button" aria-label="copy">
+                  <CopyIcon fontSize="small" />
+                </CopyButton>
+              </Tooltip>
+            </CopyToClipboard>
+          )}
+          <Tooltip title="Delete Message" placement="top">
+            <DeleteButton className="delete-button" aria-label="delete" onClick={handleOpenDeleteDialog}>
+              <DeleteIcon fontSize="small" />
+            </DeleteButton>
           </Tooltip>
-        )}
-      </ButtonContainer>
+          {role === 'user' && (
+            <Tooltip title="Retry Message" placement="top">
+              <RetryButton className="retry-button" aria-label="retry" onClick={handleOpenRetryDialog}>
+                <ReplayIcon fontSize="small" />
+              </RetryButton>
+            </Tooltip>
+          )}
+        </ButtonContainer>
 
+      </MessageContainer>
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">{t('deleteMessage')}</DialogTitle>
+        <DialogTitle>{t('deleteMessage')}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {t('areYouSureDeleteMessage')}
-          </DialogContentText>
+          <Typography>{t('areYouSureDeleteMessage')}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDeleteDialog} color="primary">{t('cancel')}</Button>
-          <Button onClick={handleConfirmDelete} color="primary" autoFocus>{t('delete')}</Button>
+          <Button onClick={handleConfirmDelete} color="error" autoFocus>{t('delete')}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog
         open={openRetryDialog}
         onClose={handleCloseRetryDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">{t('resendMessage')}</DialogTitle>
+        <DialogTitle>{t('resendMessage')}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            {t('areYouSureResendMessage')}
-          </DialogContentText>
+          <Typography>{t('areYouSureResendMessage')}</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseRetryDialog} color="primary">{t('cancel')}</Button>
-          <Button onClick={handleConfirmResend} color="primary" autoFocus>{t('resend')}</Button>
+          <Button onClick={handleConfirmResend} color="error" autoFocus>{t('resend')}</Button>
         </DialogActions>
       </Dialog>
-    </MessageContainer>
+    </>
   );
 }
 
