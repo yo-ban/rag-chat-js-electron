@@ -1,19 +1,22 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const { app } = require('electron');
 
 const baseDir = process.env.PORTABLE_EXECUTABLE_DIR || app.getAppPath();
 const settingsFilePath = path.join(baseDir, 'settings.json');
-// const defaultSettingsFilePath = path.join(baseDir, 'defaultSettings.json');
 const defaultSettingsFilePath = 'defaultSettings.json';
 
-function loadSettings() {
+async function loadSettings() {
   let defaultSettings = {};
 
   try {
-    if (fs.existsSync(defaultSettingsFilePath)) {
+    if (await fileExists(defaultSettingsFilePath)) {
       console.log('Loading default settings from:', defaultSettingsFilePath);
-      defaultSettings = JSON.parse(fs.readFileSync(defaultSettingsFilePath, 'utf-8'));
+      const data = await fs.readFile(defaultSettingsFilePath, 'utf-8');
+      defaultSettings = JSON.parse(data);
+      // defaultSettingsの相対パスを絶対パスに変換
+      defaultSettings.vectorDBSavePath = path.resolve(baseDir, defaultSettings.vectorDBSavePath);
+      defaultSettings.chatDataSavePath = path.resolve(baseDir, defaultSettings.chatDataSavePath);
     } else {
       console.error('Default settings file not found:', defaultSettingsFilePath);
     }
@@ -24,16 +27,14 @@ function loadSettings() {
   try {
     let settings = { ...defaultSettings };
 
-    if (fs.existsSync(settingsFilePath)) {
+    if (await fileExists(settingsFilePath)) {
       console.log('Loading user settings from:', settingsFilePath);
-      const userSettings = JSON.parse(fs.readFileSync(settingsFilePath, 'utf-8'));
+      const data = await fs.readFile(settingsFilePath, 'utf-8');
+      const userSettings = JSON.parse(data);
       settings = { ...settings, ...userSettings };
     } else {
       console.log('User settings file not found, using default settings.');
     }
-
-    settings.vectorDBSavePath = path.resolve(baseDir, settings.vectorDBSavePath);
-    settings.chatDataSavePath = path.resolve(baseDir, settings.chatDataSavePath);
 
     console.log('Settings loaded successfully.');
     return settings;
@@ -43,17 +44,22 @@ function loadSettings() {
   }
 }
 
-function saveSettings(settings) {
+async function saveSettings(settings) {
   try {
-    const relativeSettings = { ...settings };
-    relativeSettings.vectorDBSavePath = path.relative(baseDir, settings.vectorDBSavePath);
-    relativeSettings.chatDataSavePath = path.relative(baseDir, settings.chatDataSavePath);
-
-    fs.writeFileSync(settingsFilePath, JSON.stringify(relativeSettings, null, 2));
+    await fs.writeFile(settingsFilePath, JSON.stringify(settings, null, 2));
     console.log('Settings saved successfully to:', settingsFilePath);
     return true;
   } catch (error) {
     console.error('Error saving settings:', error);
+    return false;
+  }
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
     return false;
   }
 }

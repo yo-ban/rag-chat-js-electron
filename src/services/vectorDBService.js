@@ -1,6 +1,6 @@
 const { FaissIPStore } = require("../utils/faissIP");
 const { OpenAIEmbeddings, AzureOpenAIEmbeddings } = require("@langchain/openai");
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const fileProcessor = require('../utils/fileProcessor');
 
@@ -17,19 +17,23 @@ const vectorDBService = {
     stripNewLines: false
   },
 
-  initialize: (savePath, apiKey, vender = "openai", model = "", baseURL = "", deployment = "") => {
+  initialize: async (savePath, apiKey, vender = "openai", model = "", baseURL = "", deployment = "") => {
     vectorDBService.dataDir = path.join(savePath, 'databases');
     vectorDBService.databasesFile = path.join(vectorDBService.dataDir, 'databases.json');
     vectorDBService.vender = vender;
-    console.log(`deployment: ${deployment}`);
 
-    if (!fs.existsSync(vectorDBService.dataDir)) {
-      fs.mkdirSync(vectorDBService.dataDir);
+    try {
+      await fs.mkdir(vectorDBService.dataDir, { recursive: true });
+    } catch (error) {
+      console.error('Error creating directories:', error);
     }
 
-    if (!fs.existsSync(vectorDBService.databasesFile)) {
-      vectorDBService.saveDatabases({});
+    try {
+      await fs.access(vectorDBService.databasesFile);
+    } catch (error) {
+      await vectorDBService.saveDatabases({});
     }
+
     if (vender === "openai") {
       vectorDBService.args = {
         apiKey: apiKey,
@@ -38,6 +42,7 @@ const vectorDBService = {
         stripNewLines: false
       };
     } else if (vender === "azure") {
+      console.log(`deployment: ${deployment}`);
       vectorDBService.args = {
         apiKey: apiKey,
         deploymentName: deployment,
@@ -48,18 +53,17 @@ const vectorDBService = {
         dimensions: deployment.includes("ada") ? undefined : 3072
       };
     }
-    console.log(`Change Embeddings API Key: ${vectorDBService.args.apiKey.slice(0,10) + "..."}`);
+
+    console.log(`Change Embeddings API Key: ${vectorDBService.args.apiKey.slice(0, 10) + "..."}`);
     console.log(`VectorDBService initialized at: ${vectorDBService.dataDir}`);
   },
 
-  loadDatabases: () => {
+  loadDatabases: async () => {
     try {
-      const data = fs.readFileSync(vectorDBService.databasesFile);
+      const data = await fs.readFile(vectorDBService.databasesFile, 'utf-8');
       const parsedData = JSON.parse(data);
-      // console.log(JSON.stringify(parsedData));
       const databases = parsedData.databases || {};
       const descriptions = parsedData.descriptions || {};
-      // console.log(JSON.stringify(databases));
       return { databases, descriptions };
     } catch (error) {
       console.error('Error loading databases:', error);
@@ -67,14 +71,14 @@ const vectorDBService = {
     }
   },
 
-  saveDatabases: ({ databases, descriptions }) => {
+  saveDatabases: async ({ databases, descriptions }) => {
     try {
       const data = JSON.stringify({ databases, descriptions }, null, 2);
       console.log(`Saving databases: ${JSON.stringify(databases)}`);
       console.log(`Saving descriptions: ${JSON.stringify(descriptions)}`);
       console.log(`Writing to: ${vectorDBService.databasesFile}`);
       console.log(`Data: ${data}`);
-      fs.writeFileSync(vectorDBService.databasesFile, data);
+      await fs.writeFile(vectorDBService.databasesFile, data);
     } catch (error) {
       console.error('Error saving databases:', error);
     }
@@ -92,8 +96,8 @@ const vectorDBService = {
     return Date.now().toString();
   },
 
-  getDatabaseIdByName: (dbName) => {
-    const { databases, descriptions } = vectorDBService.loadDatabases();
+  getDatabaseIdByName: async (dbName) => {
+    const { databases } = await vectorDBService.loadDatabases();
     for (const id in databases) {
       if (databases[id] === dbName) {
         return id;
@@ -102,24 +106,24 @@ const vectorDBService = {
     return null;
   },
 
-  getDatabaseDescriptionByName: (dbName) => {
-    const { databases, descriptions } = vectorDBService.loadDatabases();
-    const id = vectorDBService.getDatabaseIdByName(dbName);
+  getDatabaseDescriptionByName: async (dbName) => {
+    const { databases, descriptions } = await vectorDBService.loadDatabases();
+    const id = await vectorDBService.getDatabaseIdByName(dbName);
     if (id in descriptions) {
-        return descriptions[id];
+      return descriptions[id];
     }
     return "";
   },
 
   createDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description) => {
     try {
-      const existingDbId = vectorDBService.getDatabaseIdByName(dbName);
+      const existingDbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (existingDbId) {
         throw new Error(`Database "${dbName}" already exists.`);
       }
 
       const dbId = vectorDBService.generateDatabaseId();
-      const { databases, descriptions } = vectorDBService.loadDatabases();
+      const { databases, descriptions } = await vectorDBService.loadDatabases();
       databases[dbId] = dbName;
       descriptions[dbId] = description;
 
@@ -139,7 +143,7 @@ const vectorDBService = {
 
       const dbPath = vectorDBService.getDbPath(dbId);
       await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
-      vectorDBService.saveDatabases({ databases, descriptions });
+      await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Database created: ${dbName} (ID: ${dbId})`);
 
     } catch (error) {
@@ -147,10 +151,10 @@ const vectorDBService = {
       throw error;
     }
   },
-    
+
   loadDatabase: async (dbName) => {
     try {
-      const dbId = vectorDBService.getDatabaseIdByName(dbName);
+      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
         throw new Error(`Database not found: ${dbName}`);
       }
@@ -163,14 +167,14 @@ const vectorDBService = {
     }
   },
 
-  getDocumentNames: (dbName) => {
+  getDocumentNames: async (dbName) => {
     try {
-      const dbId = vectorDBService.getDatabaseIdByName(dbName);
+      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
         throw new Error(`Database not found: ${dbName}`);
       }
       const dbPath = vectorDBService.getDbPath(dbId);
-      const docNameToChunkIds = vectorDBService.loadDocNameToChunkIds(dbPath);
+      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
       const docNames = Object.keys(docNameToChunkIds);
       console.log(`Loaded document names for database ${dbName} (ID: ${dbId}): ${docNames}`);
       return docNames;
@@ -182,27 +186,27 @@ const vectorDBService = {
 
   addDocumentsToDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress) => {
     try {
-      const dbId = vectorDBService.getDatabaseIdByName(dbName);
+      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
         throw new Error(`Database not found: ${dbName}`);
       }
       const dbPath = vectorDBService.getDbPath(dbId);
       console.log(`Adding documents to database ${dbName} (ID: ${dbId})`);
-  
+
       const vectorStore = await vectorDBService.loadDatabase(dbName);
-      const docNameToChunkIds = vectorDBService.loadDocNameToChunkIds(dbPath);
-  
+      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
+
       const allChunks = [];
-  
+
       for (const [index, filePath] of filePaths.entries()) {
         sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
         const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
         allChunks.push(...chunks);
       }
-  
+
       const chunkIds = allChunks.map(chunk => chunk.metadata.chunkId);
       await vectorStore.addDocuments(allChunks, { ids: chunkIds });
-  
+
       await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
       console.log(`Documents added to database ${dbName} (ID: ${dbId})`);
     } catch (error) {
@@ -210,17 +214,17 @@ const vectorDBService = {
       throw error;
     }
   },
-  
+
   deleteDocumentFromDatabase: async (dbName, docName) => {
     try {
-      const dbId = vectorDBService.getDatabaseIdByName(dbName);
+      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
         throw new Error(`Database not found: ${dbName}`);
       }
       const dbPath = vectorDBService.getDbPath(dbId);
       console.log(`Deleting document from database ${dbName} (ID: ${dbId}): ${docName}`);
       const vectorStore = await vectorDBService.loadDatabase(dbName);
-      const docNameToChunkIds = vectorDBService.loadDocNameToChunkIds(dbPath);
+      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
 
       const chunkIdsToDelete = docNameToChunkIds[docName];
       if (!chunkIdsToDelete) {
@@ -253,17 +257,21 @@ const vectorDBService = {
     return path.join(vectorDBService.dataDir, dbId);
   },
 
-  loadDocNameToChunkIds: (dbPath) => {
-    return JSON.parse(fs.readFileSync(path.join(dbPath, 'docNameToChunkIds.json')));
+  loadDocNameToChunkIds: async (dbPath) => {
+    const data = await fs.readFile(path.join(dbPath, 'docNameToChunkIds.json'), 'utf-8');
+    return JSON.parse(data);
   },
 
   saveDatabase: async (dbPath, vectorStore, docNameToChunkIds) => {
-    if (!fs.existsSync(dbPath)) {
-      fs.mkdirSync(dbPath, { recursive: true });
+    try {
+      await fs.mkdir(dbPath, { recursive: true });
+      await vectorStore.save(dbPath);
+      await fs.writeFile(path.join(dbPath, 'docNameToChunkIds.json'), JSON.stringify(docNameToChunkIds));
+      console.log(`Database saved at: ${dbPath}`);
+    } catch (error) {
+      console.error('Error saving database:', error);
+      throw error;
     }
-    await vectorStore.save(dbPath);
-    fs.writeFileSync(path.join(dbPath, 'docNameToChunkIds.json'), JSON.stringify(docNameToChunkIds));
-    console.log(`Database saved at: ${dbPath}`);
   }
 };
 

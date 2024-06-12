@@ -90,7 +90,7 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
 
 
 ipcMain.handle('load-databases', async () => {
-  return handleIpcMainEvent('load-databases', () => vectorDBService.loadDatabases());
+  return handleIpcMainEvent('load-databases', async () => await vectorDBService.loadDatabases());
 });
 
 ipcMain.handle('create-database', async (event, dbName, filePaths, chunkSize, overlapPercentage, description) => {
@@ -137,29 +137,29 @@ ipcMain.handle('delete-document-from-database', async (event, dbName, documentIn
 });
 
 ipcMain.handle('load-database', async (event, dbName) => {
-  return handleIpcMainEvent('load-database', () => loadDatabaseByName(dbName));
+  return handleIpcMainEvent('load-database', async () => await loadDatabaseByName(dbName));
 });
 
 ipcMain.handle('reload-database', async (event, dbName) => {
-  return handleIpcMainEvent('reload-database', () => reloadDatabaseByName(dbName));
+  return handleIpcMainEvent('reload-database', async () => await reloadActiveDatabase(dbName));
 });
 
 ipcMain.handle('get-document-names', async (event, dbName) => {
-  return handleIpcMainEvent('get-document-names', () => vectorDBService.getDocumentNames(dbName));
+  return handleIpcMainEvent('get-document-names', async () => await vectorDBService.getDocumentNames(dbName));
 });
 
 ipcMain.handle('delete-database', async (event, dbName) => {
   return handleIpcMainEvent('delete-database', async () => {
-    const dbId = vectorDBService.getDatabaseIdByName(dbName);
+    const dbId = await vectorDBService.getDatabaseIdByName(dbName);
     if (!dbId) throw new Error(`Database not found: ${dbName}`);
     const dbPath = vectorDBService.getDbPath(dbId);
     
     fs.rmSync(dbPath, { recursive: true, force: true });
     
-    const { databases, descriptions } = vectorDBService.loadDatabases();
+    const { databases, descriptions } = await vectorDBService.loadDatabases();
     delete databases[dbId];
     delete descriptions[dbId];
-    vectorDBService.saveDatabases({ databases, descriptions });
+    await vectorDBService.saveDatabases({ databases, descriptions });
   });
 });
 

@@ -13,8 +13,9 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], con
     const { systemMessage, temperature, maxTokens, topic, dbName } = chatData;
 
     let dbInfo = "";
-    if (chatData.dbName){    
-      dbInfo = `${dbName}(${vectorDBService.getDatabaseDescriptionByName(chatData.dbName)})`
+    if (chatData.dbName){
+      const dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName);
+      dbInfo = `${dbName}(${dbDescription})`
     }
 
     const systemMessageToSend = generateQAPrompt(systemMessage, topic, context, context2, dbInfo);
@@ -89,23 +90,23 @@ ipcMain.handle('generate-chat-name', async (event, messages, chatId) => {
 
 
 ipcMain.handle('load-chats', async (event) => {
-  return handleIpcMainEvent('load-chats', () => chatService.loadChats());
+  return handleIpcMainEvent('load-chats', async () => await chatService.loadChats());
 });
 
 ipcMain.handle('load-chat-history', async (event, chatId) => {
-  return handleIpcMainEvent('load-chat-history', () => chatService.loadChatHistory(chatId));
+  return handleIpcMainEvent('load-chat-history', async () => await chatService.loadChatHistory(chatId));
 });
 
 ipcMain.handle('create-new-chat', async (event, dbName, chatConfig) => {
-  return handleIpcMainEvent('create-new-chat', () => chatService.createNewChat(dbName, chatConfig));
+  return handleIpcMainEvent('create-new-chat', async () => await chatService.createNewChat(dbName, chatConfig));
 });
 
 ipcMain.handle('update-chat', async (event, updatedChat) => {
-  return handleIpcMainEvent('update-chat', () => chatService.updateChat(updatedChat));
+  return handleIpcMainEvent('update-chat', async () => await chatService.updateChat(updatedChat));
 });
 
 ipcMain.handle('delete-chat', async (event, chatId) => {
-  return handleIpcMainEvent('delete-chat', () => chatService.deleteChat(chatId));
+  return handleIpcMainEvent('delete-chat', async () => await chatService.deleteChat(chatId));
 });
 
 ipcMain.handle('transform-query', async (event, chatId, chatHistory, analysis) => {
@@ -116,7 +117,7 @@ ipcMain.handle('transform-query', async (event, chatId, chatHistory, analysis) =
     
     let dbDescription = "";
     if (chatData.dbName){    
-      dbDescription = vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
+      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
     }
     // クエリ変換プロンプトを生成
     const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
@@ -145,7 +146,7 @@ ipcMain.handle('analysis-query', async (event, chatId, chatHistory) => {
     
     let dbDescription = "";
     if (chatData.dbName){    
-      dbDescription = vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
+      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
     }
     // クエリ分析プロンプトを生成
     const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');

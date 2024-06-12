@@ -26,33 +26,42 @@ function createWindow() {
 
 app.on('ready', async () => {
   createWindow();
-  const settings = loadSettings();
-  console.log('Initializing services with settings');
 
-  chatService.initialize(settings.chatDataSavePath);
+  try {
 
-  const mainVenderSettings = settings.vendors[settings.vender];
-  const embeddingsVenderSettings = settings.useSeparateVenders 
-    ? settings.embeddingsVendors[settings.embeddingsVender] 
-    : mainVenderSettings;
+    const settings = await loadSettings();
+    console.log('Initializing services with settings');
 
-  vectorDBService.initialize(
-    settings.vectorDBSavePath, 
-    embeddingsVenderSettings.apiKey,
-    settings.useSeparateVenders ? settings.embeddingsVender : settings.vender,
-    embeddingsVenderSettings.embeddingsModelName || "",
-    embeddingsVenderSettings.baseUrl,
-    embeddingsVenderSettings.embeddingsDeploymentName || ""
-  );
+    const mainVenderSettings = settings.vendors[settings.vender];
+    const embeddingsVenderSettings = settings.useSeparateVenders 
+      ? settings.embeddingsVendors[settings.embeddingsVender] 
+      : mainVenderSettings;
 
-  llmService.initialize(
-    mainVenderSettings.apiKey,
-    settings.vender,
-    mainVenderSettings.modelName,
-    mainVenderSettings.baseUrl,
-    mainVenderSettings.deploymentName
-  );
-});
+    await chatService.initialize(settings.chatDataSavePath);
+
+    await vectorDBService.initialize(
+      settings.vectorDBSavePath, 
+      embeddingsVenderSettings.apiKey,
+      settings.useSeparateVenders ? settings.embeddingsVender : settings.vender,
+      embeddingsVenderSettings.embeddingsModelName || "",
+      embeddingsVenderSettings.baseUrl,
+      embeddingsVenderSettings.embeddingsDeploymentName || ""
+    );
+
+    llmService.initialize(
+      mainVenderSettings.apiKey,
+      settings.vender,
+      mainVenderSettings.modelName,
+      mainVenderSettings.baseUrl,
+      mainVenderSettings.deploymentName
+    );
+
+  } catch {
+    console.error('Error initializing chat service:', error);
+ 
+  }
+  
+  });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -68,38 +77,51 @@ app.on('activate', () => {
 
 ipcMain.handle('load-settings', async () => {
   console.log('Loading settings via IPC');
-  return loadSettings();
+  try {
+    const settings = await loadSettings();
+    return settings;
+
+  } catch {
+    console.error('Error loading settings:', error);
+  }
 });
 
 ipcMain.handle('save-settings', async (event, settings) => {
+
   console.log('Saving settings via IPC');
-  if (saveSettings(settings)) {
-    const updatedSettings = loadSettings();
-    console.log('Re-initializing services with updated settings:', updatedSettings);
+  const success = await saveSettings(settings);
 
-    chatService.initialize(updatedSettings.chatDataSavePath);
+  if (success) {
+    try {
+      const updatedSettings = await loadSettings();
+      console.log('Re-initializing services with updated settings:', updatedSettings);
+      const mainVenderSettings = updatedSettings.vendors[updatedSettings.vender];
+      const embeddingsVenderSettings = updatedSettings.useSeparateVenders 
+        ? updatedSettings.embeddingsVendors[updatedSettings.embeddingsVender] 
+        : mainVenderSettings;
+  
+      await chatService.initialize(updatedSettings.chatDataSavePath);
 
-    const mainVenderSettings = updatedSettings.vendors[updatedSettings.vender];
-    const embeddingsVenderSettings = updatedSettings.useSeparateVenders 
-      ? updatedSettings.embeddingsVendors[updatedSettings.embeddingsVender] 
-      : mainVenderSettings;
+      await vectorDBService.initialize(
+        updatedSettings.vectorDBSavePath, 
+        embeddingsVenderSettings.apiKey,
+        updatedSettings.useSeparateVenders ? updatedSettings.embeddingsVender : updatedSettings.vender,
+        embeddingsVenderSettings.embeddingsModelName || "",
+        embeddingsVenderSettings.baseUrl,
+        embeddingsVenderSettings.embeddingsDeploymentName || ""
+      );
 
-    vectorDBService.initialize(
-      updatedSettings.vectorDBSavePath, 
-      embeddingsVenderSettings.apiKey,
-      updatedSettings.useSeparateVenders ? updatedSettings.embeddingsVender : updatedSettings.vender,
-      embeddingsVenderSettings.embeddingsModelName || "",
-      embeddingsVenderSettings.baseUrl,
-      embeddingsVenderSettings.embeddingsDeploymentName || ""
-    );
+      llmService.initialize(
+        mainVenderSettings.apiKey,
+        updatedSettings.vender,
+        mainVenderSettings.modelName,
+        mainVenderSettings.baseUrl,
+        mainVenderSettings.deploymentName
+      );
 
-    llmService.initialize(
-      mainVenderSettings.apiKey,
-      updatedSettings.vender,
-      mainVenderSettings.modelName,
-      mainVenderSettings.baseUrl,
-      mainVenderSettings.deploymentName
-    );
+    } catch (error) {
+      console.error('Error initializing chat service:', error);
+    }
 
     return true;
   }
