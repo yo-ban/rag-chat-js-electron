@@ -117,27 +117,16 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     if (!activeDbId) return [];
 
     try {
-      console.log("Search in ", activeDbId);
-      setStatusMessage(t('analysisQuery'));
-      const analysisResult = await api.analysisQuery(chatId, filteredMessages);
-      console.log('Query analysis result:', analysisResult);
 
-      setStatusMessage(t('transformQuery'));
-      const transformedQueries = await api.transformQuery(chatId, filteredMessages, analysisResult);
-      console.log('Transformed queries:', transformedQueries);
+      console.log("Start retrieval-augmented in ", activeDbId);
+      const { requiresFollowUp, reason, queries, mergedResults } = await api.retrievalAugmented(chatId, filteredMessages, activeDbId, k)
 
-      setStatusMessage(t('searchingInDatabase'));
-      const queries = transformedQueries.map(transformedQuery => transformedQuery.query);
-      const mergedResults = await api.similaritySearch(activeDbId, queries, k)
-      
-      console.log('Similarity search result:', mergedResults);
-
-      return { transformedQueries, mergedResults };
+      return { requiresFollowUp, reason, queries, mergedResults };
 
     } catch (error) {
       console.error('Error during similarity search:', error);
       toast.error(t('errorSearchingDocument'));
-      return { transformedQueries: [], mergedResults: [] };
+      return { requiresFollowUp: false, reason: "", queries: [], mergedResults: [] };
     }
   };
 
@@ -173,10 +162,16 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     setIsSending(true);
 
     try {
-      const { transformedQueries, mergedResults } = await performSearch(newMessages);
-      setStatusMessage(t('sendingMessage'));
-      await api.sendMessage(newMessages, chatId, mergedResults, transformedQueries);
-      console.log('Message sent:', { newMessages, mergedResults });
+      const { requiresFollowUp, reason, queries, mergedResults } = await performSearch(newMessages);
+      setStatusMessage(t('generateResponse'));
+      
+      if (requiresFollowUp) {
+        await api.sendMessageFollowup(newMessages, chatId, reason);
+        console.log('Message sent (followup):', { newMessages, reason });  
+      } else { 
+        await api.sendMessage(newMessages, chatId, mergedResults, queries);
+        console.log('Message sent:', { newMessages, mergedResults });  
+      }
 
       updateChat({
         id: chatId,
@@ -236,7 +231,20 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
       sendMessage(resendMessage);
     }
   }, [messages, resendMessage, sendMessage]);
+
+  useEffect(() => {
+    const handleStatus = (message) => {
+      console.log(message);
+      setStatusMessage(t(message));
+    };
     
+    api.onMessageProgress(handleStatus);
+
+    return () => {
+      api.removeListener('message-progress', handleStatus);
+    };
+  }, [t]);
+
   return (
     <ChatBoxContainer>
       <ErrorNotification error={error} onRetry={handleRetry} />

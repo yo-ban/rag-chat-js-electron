@@ -275,6 +275,63 @@ Begin your analysis by following the specified guidelines and structure.
 `;
 };
 
+
+// 情報判断のプロンプトを生成する関数
+function determineInformationSufficientPrompt(chatHistory, topic, dbDescription, analysis) {
+  // 最新の質問を取得
+  const latestQuestion = chatHistory[chatHistory.length - 1];
+  
+  // チャット履歴を必要に応じて制限
+  const recentChatHistory = chatHistory.length > 4 ? chatHistory.slice(-4) : chatHistory;
+  const chatHistoryText = recentChatHistory
+    .map((message) => `${message.role}: ${message.content}`)
+    .join("\n");
+
+  // 関連情報の設定
+  const relevantInfoText = `Loaded DB description:
+${dbDescription}
+
+Chat topics infromation:
+${topic}`
+
+  return `You are an assistant that determines whether the user's latest question is too abstract or unclear and if follow-up questions are needed.
+
+## Context
+- Relevant information: 
+${relevantInfoText}
+
+- Recent chat history: 
+${chatHistoryText}
+
+## User's latest question
+${latestQuestion.content}
+
+## Analysis of user's question
+${analysis}
+
+## Instructions
+Based on the provided context, analyze the user's latest question. Determine if the question is too abstract or unclear and requires follow-up questions for clarification.
+Only if, after reviewing all relevant information, the recent chat history, the user's latest question, and the analysis, it is completely unclear what the user is asking, then follow-up questions should be deemed necessary.
+If follow-up questions are necessary, specify the areas that need clarification and output the result in JSON format as follows:
+
+{
+  "requiresFollowUp": true,
+  "reason": "The user's question is too abstract and lacks specific details. Follow-up questions are needed for clarification in the following areas: [specific area 1], [specific area 2], [specific area 3]."
+}
+
+If no follow-up questions are needed, output the result in JSON format as follows:
+
+{
+  "requiresFollowUp": false,
+  "reason": "The user's question is clear and specific enough to proceed without follow-up questions."
+}
+
+Output only the JSON result and nothing else.
+`;
+};
+
+
+
 // クエリ変換プロンプトを生成する関数
 function generateTransformationPrompt(chatHistory, topic, analysis, dbDescription) {
   // 最新の質問を取得
@@ -293,36 +350,36 @@ ${dbDescription}
 Chat topics infromation:
 ${topic}`
 
-  return `You are an assistant that converts user questions into more effective search queries.
-Generate multiple queries to search from different perspectives for the user's question.
-Note: The queries should be in the same language as the user's question.
+  return `You are an assistant that converts user questions into effective search prompts for document retrieval.
+Generate multiple search prompts to retrieve relevant document chunks that are similar to the user's desired information.
+Note: The prompts should be in the same language as the user's question.
 
-Consider the following steps when generating the queries:
+Consider the following steps when generating the prompts:
 
 1. **Understand the user's intent**: Based on the analysis provided, what is the user trying to achieve or find out? What underlying needs or constraints might they have?
 2. **Identify potential background information**: Based on the analysis, what context or additional information might be relevant to the user's question? This could include system limitations, business processes, or user preferences.
-3. **Formulate diverse perspectives**: Create queries that approach the question from different angles. These perspectives should be tailored to the specific context and requirements identified in the analysis.
-4. **Refine the queries**: Ensure each query is clear, precise, and relevant to the user's question.
-5. **Limit the number of queries**: Generate a maximum of three queries to cover different perspectives.
+3. **Formulate diverse perspectives**: Create prompts that approach the information from different angles. These perspectives should be tailored to the specific context and requirements identified in the analysis.
+4. **Refine the prompts**: Ensure each prompt is clear, precise, and relevant to the user's desired information.
+5. **Limit the number of prompts**: Generate a maximum of three prompts to cover different perspectives.
 
-Each query must be output in the following JSON format only:
+Each prompt must be output in the following JSON format only:
 
 [
   {
     "perspective": "Perspective 1",
-    "query": "Converted Query 1"
+    "prompt": "Converted Prompt 1"
   },
   {
     "perspective": "Perspective 2",
-    "query": "Converted Query 2"
+    "prompt": "Converted Prompt 2"
   },
   {
     "perspective": "Perspective 3",
-    "query": "Converted Query 3"
+    "prompt": "Converted Prompt 3"
   }
 ]
 
-By following these guidelines, you can generate effective and comprehensive search queries that address the user's underlying needs and provide valuable information.
+By following these guidelines, you can generate effective and comprehensive search prompts that address the user's underlying needs and provide valuable information.
 
 ## Relevant information
 ${relevantInfoText}
@@ -336,19 +393,19 @@ ${latestQuestion.content}
 ## Analysis of user's question
 ${analysis}
 
-## Converted queries 
+## Converted prompts  
 `;
 };
 
 // 検索結果のフォーマット処理
-function formatSearchResults(searchResults, context2, dbInfo) {
+function formatSearchResults(searchResults, queries, dbInfo) {
 
   
   let serachInfo = "## Search Info\n";
   serachInfo += `**Search target database:** ${dbInfo}\n`
   
   serachInfo += "**Search Queries:**\n";
-  context2.forEach(query => {
+  queries.forEach(query => {
     serachInfo += `- ${query.query}\n`;
   });
 
@@ -365,14 +422,14 @@ function formatSearchResults(searchResults, context2, dbInfo) {
 ${resultsStr}`
 }
 
-// クエリ変換プロンプトを生成する関数
-function generateQAPrompt(systemMessage, topic, context, context2, dbInfo) {
+// 回答生成プロンプトを生成する関数
+function generateQAPrompt(systemMessage, topic, context, queries, dbInfo) {
   let constructedSystemMessage = systemMessage;
   const documentPlaceholder = "{{DOCUMENTS}}";
   const topicPlaceholder = "{{TOPIC}}";
   if (constructedSystemMessage) {
     if (context.length > 0) {
-      const documents = formatSearchResults(context, context2, dbInfo).trim();
+      const documents = formatSearchResults(context, queries, dbInfo).trim();
       console.log(`Formatted Search Results:\n${documents}`);
       constructedSystemMessage = constructedSystemMessage.includes(documentPlaceholder)
         ? constructedSystemMessage.replace(documentPlaceholder, `${documents}`)
@@ -394,11 +451,42 @@ function generateQAPrompt(systemMessage, topic, context, context2, dbInfo) {
   return constructedSystemMessage;
 }
 
+
+// フォローアッププロンプトを生成する関数
+function generateFollowUpPrompt(systemMessage, topic, followupReason) {
+  let constructedSystemMessage = systemMessage;
+  const documentPlaceholder = "{{DOCUMENTS}}";
+  const topicPlaceholder = "{{TOPIC}}";
+  if (constructedSystemMessage) {
+    if (followupReason) {
+      console.log(`Follow-up Reason:\n${followupReason}`);
+      constructedSystemMessage = constructedSystemMessage.includes(documentPlaceholder)
+        ? constructedSystemMessage.replace(documentPlaceholder, `${followupReason}`)
+        : `${constructedSystemMessage}\n\n<Followup Reason>\n${followupReason}\n</Followup Reason>\n`;
+    } else {
+      constructedSystemMessage = constructedSystemMessage.replace(documentPlaceholder, "");
+    }
+
+    if (topic) {
+      constructedSystemMessage = constructedSystemMessage.includes(topicPlaceholder)
+        ? constructedSystemMessage.replace(topicPlaceholder, `${topic}`)
+        : `${constructedSystemMessage}\n\n<Topic>\n${topic}\n</Topic>\n`;
+    } else {
+      constructedSystemMessage = constructedSystemMessage.replace(topicPlaceholder, "");
+    }
+  } else {
+    console.error("System Message is blank!")
+  }
+  return constructedSystemMessage;
+}
+
 module.exports = { 
   mergeAndRerankSearchResults, 
   parseTransformedQueries,
   generateAnalysisPrompt,
+  determineInformationSufficientPrompt,
   generateTransformationPrompt,
-  generateQAPrompt
+  generateQAPrompt,
+  generateFollowUpPrompt
 };
 

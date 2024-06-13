@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  sendMessage: (messages, chatId, context, context2) => ipcRenderer.invoke('send-message', messages, chatId, context, context2),
+  sendMessage: (messages, chatId, context, queries) => ipcRenderer.invoke('send-message', messages, chatId, context, queries),
+  sendMessageFollowup: (messages, chatId, followupReason) => ipcRenderer.invoke('send-message-followup', messages, chatId, followupReason),
   deleteMessages: (chatId, startIndex) => ipcRenderer.invoke('delete-messages', chatId, startIndex),
   generateChatName: (messages, chatId) => ipcRenderer.invoke('generate-chat-name', messages, chatId),
   loadChats: () => ipcRenderer.invoke('load-chats'),
@@ -14,6 +15,7 @@ contextBridge.exposeInMainWorld('electron', {
   loadDatabases: () => ipcRenderer.invoke('load-databases'),
   openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
   onDatabaseProgress: (callback) => ipcRenderer.on('database-progress', (event, message, dbName) => callback(message, dbName)),
+  onMessageProgress: (callback) => ipcRenderer.on('message-progress', (event, message) => callback(message)),
   createDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => ipcRenderer.invoke('create-database', dbName, filePaths, chunkSize, overlapPercentage, description),
   loadDatabase: (dbName) => ipcRenderer.invoke('load-database', dbName),
   deleteDatabase: (dbName) => ipcRenderer.invoke('delete-database', dbName),
@@ -21,9 +23,7 @@ contextBridge.exposeInMainWorld('electron', {
   getDocumentNames: (dbName) => ipcRenderer.invoke('get-document-names', dbName),
   addDocumentsToDatabase: (dbName, filePaths, chunkSize, overlapPercentage) => ipcRenderer.invoke('add-documents-to-database', dbName, filePaths, chunkSize, overlapPercentage),
   deleteDocumentFromDatabase: (dbName, documentIndex) => ipcRenderer.invoke('delete-document-from-database', dbName, documentIndex),
-  transformQuery: (chatId, chatHistory, analysis) => ipcRenderer.invoke('transform-query', chatId, chatHistory, analysis),
-  analysisQuery: (chatId, chatHistory) => ipcRenderer.invoke('analysis-query', chatId, chatHistory),
-  similaritySearch: (dbId, queries, k) => ipcRenderer.invoke('similarity-search', dbId, queries, k),
+  retrievalAugmented: (chatId, chatHistory, activeDbId, k) => ipcRenderer.invoke('retrieval-augmented', chatId, chatHistory, activeDbId, k),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   openLocalFile: (filePath) => ipcRenderer.invoke('open-local-file', filePath),

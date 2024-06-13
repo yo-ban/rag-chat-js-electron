@@ -1,10 +1,12 @@
 const { ipcMain, dialog } = require('electron');
 const vectorDBService = require('../services/vectorDBService');
+const chatService = require('../services/chatService');
+const llmService = require('../services/llmService');
 const { v4: uuidv4 } = require('uuid');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
 const fileProcessor = require('../utils/fileProcessor');
 const fs = require('fs');
-const { mergeAndRerankSearchResults } = require('../utils/ragUtils');
+const { mergeAndRerankSearchResults, parseTransformedQueries, generateAnalysisPrompt, generateTransformationPrompt, determineInformationSufficientPrompt } = require('../utils/ragUtils');
 
 const activeDatabases = {}; // DB IDとDBインスタンスのマップ
 
@@ -163,19 +165,101 @@ ipcMain.handle('delete-database', async (event, dbName) => {
   });
 });
 
-ipcMain.handle('similarity-search', async (event, dbId, queries, k = 10) => {
-  return handleIpcMainEvent('similarity-search', async () => {
-    const db = activeDatabases[dbId].db;
-    if (!db) throw new Error(`Database not found: ${dbId}`);
+async function analysisQuery(chatHistory, chatData, dbDescription) {
 
-    // 各クエリに対して検索を実行
-    const searchResults = await Promise.all(
-      queries.map(query => vectorDBService.similaritySearch(db, query, k + 5))
-    );
+  // クエリ分析プロンプトを生成
+  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
+  const prompt = generateAnalysisPrompt(filteredChatHistory, chatData.topic, dbDescription);
 
-    // 簡易リランク、ソート
-    const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
+  // クエリ分析実行
+  let response = "";
+  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 1024, (content) => {
+    response += content;
+  });
 
-    return mergedResults;
+  return response.trim();
+}
+
+async function determine(chatHistory, chatData, dbDescription, analysis){
+
+  // クエリ変換プロンプトを生成
+  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
+  const prompt = determineInformationSufficientPrompt(filteredChatHistory, chatData.topic, dbDescription, analysis);
+
+  // クエリ変換実行
+  let response = "";
+  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 500, (content) => {
+    response += content;
+  });
+
+  // レスポンスをパース
+  const determineResult = parseTransformedQueries(response.trim());
+  return determineResult;
+}
+
+async function transformQuery(chatHistory, analysis, chatData, dbDescription) {
+
+  // クエリ変換プロンプトを生成
+  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
+  const prompt = generateTransformationPrompt(filteredChatHistory, chatData.topic, analysis, dbDescription);
+
+  // クエリ変換実行
+  let response = "";
+  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 500, (content) => {
+    response += content;
+  });
+
+  // レスポンスをパース
+  const transformedQueries = parseTransformedQueries(response.trim());
+  return transformedQueries;
+}
+
+async function similaritySearch(dbId, queries, k = 10) {
+  const db = activeDatabases[dbId].db;
+  if (!db) throw new Error(`Database not found: ${dbId}`);
+
+  // 各クエリに対して検索を実行
+  const searchResults = await Promise.all(
+    queries.map(query => vectorDBService.similaritySearch(db, query, k + 5))
+  );
+
+  // 簡易リランク、ソート
+  const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
+  return mergedResults;
+}
+
+ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeDbId, k) => {
+  return handleIpcMainEvent(event, async () => {
+
+    const chatData = await chatService.loadChatData(chatId);
+    if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
+    
+    let dbDescription = "";
+    if (chatData.dbName){    
+      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName);
+    }
+
+    event.sender.send('message-progress', 'analysisQuery');
+    const analysisResult = await analysisQuery(chatHistory, chatData, dbDescription);
+    console.log(`Query analysis result:\n${analysisResult}`);
+
+    const determineResult = await determine(chatHistory, chatData, dbDescription, analysisResult);
+    console.log(`Determine information sufficient result:\n${JSON.stringify(determineResult)}`);
+
+    const requiresFollowUp = determineResult.requiresFollowUp;
+    const reason = determineResult.reason;
+    if (requiresFollowUp) {
+      return { requiresFollowUp, reason, transformedQueries:[], mergedResults:[] }
+    }
+
+    event.sender.send('message-progress', 'transformQuery');
+    const transformedQueries = await transformQuery(chatHistory, analysisResult, chatData, dbDescription);
+    const queries = transformedQueries.map(transformedQuery => transformedQuery.prompt);
+    console.log(`Transformed queries:\n${JSON.stringify(transformedQueries)}`);
+
+    event.sender.send('message-progress', 'searchingInDatabase');
+    const mergedResults = await similaritySearch(activeDbId, queries, k);
+
+    return { requiresFollowUp: false, reason: "", queries, mergedResults }
   });
 });

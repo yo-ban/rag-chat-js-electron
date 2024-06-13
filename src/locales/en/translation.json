@@ -1,4 +1,5 @@
 {
+  "langChange": "Change to English",
   "appTitle": "RAGChat-Electron",
   "changeTheme": "Change Theme",
   "openGlobalSettings": "Global Settings",
@@ -96,6 +97,7 @@
   "analysisQuery": "Analyzing the question...",
   "transformQuery": "Creating the search query...",
   "searchingInDatabase": "Searching in vector DB...",
+  "generateResponse": "Generating resonse...",
   "sendingMessage": "Sending message...",
   "typing": "Typing...",
   "placeholder": "Type a message...",

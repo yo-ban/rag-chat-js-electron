@@ -3,9 +3,9 @@ const chatService = require('../services/chatService');
 const vectorDBService = require('../services/vectorDBService');
 const llmService = require('../services/llmService');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
-const { parseTransformedQueries, generateAnalysisPrompt, generateTransformationPrompt, generateQAPrompt } = require('../utils/ragUtils');
+const { generateQAPrompt, generateFollowUpPrompt } = require('../utils/ragUtils');
 
-ipcMain.handle('send-message', async (event, messages, chatId, context = [], context2 = []) => {
+ipcMain.handle('send-message', async (event, messages, chatId, context = [], queries = []) => {
   return handleIpcMainEvent(event, async () => {
     const chatData = await chatService.loadChatData(chatId);
     if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
@@ -18,7 +18,7 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], con
       dbInfo = `${dbName}(${dbDescription})`
     }
 
-    const systemMessageToSend = generateQAPrompt(systemMessage, topic, context, context2, dbInfo);
+    const systemMessageToSend = generateQAPrompt(systemMessage, topic, context, queries, dbInfo);
 
     const filteredMessages = messages.filter(message => message.role !== 'doc');
     const messagesToSend = [{ role: 'system', content: systemMessageToSend }, ...filteredMessages];
@@ -51,6 +51,34 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], con
       event.sender.send('doc-message', docMessage.results);
     }
 
+    await chatService.saveChatMessage(chatId, updatedMessages);
+  });
+});
+
+ipcMain.handle('send-message-followup', async (event, messages, chatId, followupReason) => {
+  return handleIpcMainEvent(event, async () => {
+    const chatData = await chatService.loadChatData(chatId);
+    if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
+
+    const { systemMessage, temperature, maxTokens, topic } = chatData;
+
+    const systemMessageToSend = generateFollowUpPrompt(systemMessage, topic, followupReason);
+
+    const filteredMessages = messages.filter(message => message.role !== 'doc');
+    const messagesToSend = [{ role: 'system', content: systemMessageToSend }, ...filteredMessages];
+    let assistantMessageContent = '';
+
+    // ストリーミングメッセージの完了を待つ
+    await new Promise((resolve, reject) => {
+      llmService.sendMessage(messagesToSend, parseFloat(temperature), parseInt(maxTokens, 10), (content) => {
+        assistantMessageContent += content;
+        event.sender.send('streaming-message', content);
+      }).then(resolve).catch(reject);
+    });
+
+    const updatedMessages = [...messages, { role: 'assistant', content: assistantMessageContent }];
+    event.sender.send('streaming-message-end');
+    
     await chatService.saveChatMessage(chatId, updatedMessages);
   });
 });
@@ -107,61 +135,4 @@ ipcMain.handle('update-chat', async (event, updatedChat) => {
 
 ipcMain.handle('delete-chat', async (event, chatId) => {
   return handleIpcMainEvent('delete-chat', async () => await chatService.deleteChat(chatId));
-});
-
-ipcMain.handle('transform-query', async (event, chatId, chatHistory, analysis) => {
-  return handleIpcMainEvent(event, async () => {
-
-    const chatData = await chatService.loadChatData(chatId);
-    if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
-    
-    let dbDescription = "";
-    if (chatData.dbName){    
-      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
-    }
-    // クエリ変換プロンプトを生成
-    const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
-    const prompt = generateTransformationPrompt(filteredChatHistory, chatData.topic, analysis, dbDescription);
-
-    // クエリ変換実行
-    let response = "";
-    await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 500, (content) => {
-      response += content;
-    });
-
-    console.log(`Raw response in query transformation:\n${response}`);
-
-    // レスポンスをパース
-    const transformedQueries = parseTransformedQueries(response.trim());
-    return transformedQueries;
-  });
-});
-
-
-ipcMain.handle('analysis-query', async (event, chatId, chatHistory) => {
-  return handleIpcMainEvent(event, async () => {
-
-    const chatData = await chatService.loadChatData(chatId);
-    if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
-    
-    let dbDescription = "";
-    if (chatData.dbName){    
-      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName)
-    }
-    // クエリ分析プロンプトを生成
-    const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
-    const prompt = generateAnalysisPrompt(filteredChatHistory, chatData.topic, dbDescription);
-
-    // console.log(prompt);
-
-    // クエリ分析実行
-    let response = "";
-    await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 1024, (content) => {
-      response += content;
-    });
-
-    console.log(`Raw response in query analyze:\n${response}`);
-
-    return response.trim();
-  });
 });
