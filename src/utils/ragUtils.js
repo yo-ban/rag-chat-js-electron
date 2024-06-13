@@ -204,9 +204,12 @@ ${topic}`
   - These aspects should be tailored to the specific context and requirements of the user's question.
   - Ensure that these aspects cover various dimensions relevant to the question.
 
+
 Provide your analysis in the following format:
 
-## Analysis Output Format:
+\`\`\`
+### Analysis:
+
 1. **Core Question**:
   - [Core question summary]
 
@@ -221,6 +224,7 @@ Provide your analysis in the following format:
 
 5. **Formulate Searchable Aspects**:
   - [Aspects to be searched]
+\`\`\`
 
 ## Example
 
@@ -250,7 +254,8 @@ Provide your analysis in the following format:
     - Conditions or triggers for initiating a system reboot (e.g., after updates or during low usage periods).
     - Historical data on past reboot times and their impact on system performance.
 
-## Actual analysis target
+
+## Actual analysis targets
 
 ### Relevant information:
 ${relevantInfoText}
@@ -263,7 +268,8 @@ ${latestQuestion.content}
 
 ---
 
-Now, please start your analysis by following the Analysis Output Format.
+Please remember that your role is to provide analysis according to the given instructions and format. Only include analysis in your response. 
+Begin your analysis by following the specified guidelines and structure.
 
 ### Analysis:
 `;
