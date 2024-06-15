@@ -107,6 +107,7 @@ function App() {
   const [activeChat, setActiveChat] = useState(null);
   const [activeDbId, setActiveDbId] = useState(null);
   const [databases, setDatabases] = useState([]);
+  const [dbDescriptions, setDbDescriptions] = useState([]);
   const [theme, setTheme] = useState(lightTheme);
   const [defaultSettings, setDefaultSettings] = useState({
     systemMessage: 'You are a helpful assistant.',
@@ -244,6 +245,7 @@ function App() {
     const loadDatabases = async () => {
       const { databases: dbList, descriptions } = await api.loadDatabases();
       setDatabases(Object.values(dbList));
+      setDbDescriptions(Object.values(descriptions))
     };
     loadDatabases();
   }, []);
@@ -267,6 +269,7 @@ function App() {
             loadChats={loadChats}
             selectedChatId={activeChat ? activeChat.id : null}
             databases={databases}
+            dbDescriptions={dbDescriptions}
             setDatabases={setDatabases}
             toggleTheme={toggleTheme}
           />

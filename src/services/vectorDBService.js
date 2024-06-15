@@ -184,7 +184,7 @@ const vectorDBService = {
     }
   },
 
-  addDocumentsToDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress) => {
+  addDocumentsToDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description) => {
     try {
       const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
@@ -207,7 +207,17 @@ const vectorDBService = {
       const chunkIds = allChunks.map(chunk => chunk.metadata.chunkId);
       await vectorStore.addDocuments(allChunks, { ids: chunkIds });
 
+      // Load existing databases and descriptions
+      const { databases, descriptions } = await vectorDBService.loadDatabases();
+      
+      // Update the description if a new one is provided
+      if (description) {
+        descriptions[dbId] = description;
+      }
+
+      // Save the updated databases and descriptions
       await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
+      await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Documents added to database ${dbName} (ID: ${dbId})`);
     } catch (error) {
       console.error('Error adding documents to database:', error);

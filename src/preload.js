@@ -21,7 +21,7 @@ contextBridge.exposeInMainWorld('electron', {
   deleteDatabase: (dbName) => ipcRenderer.invoke('delete-database', dbName),
   reloadDatabase: (dbName) => ipcRenderer.invoke('reload-database', dbName),
   getDocumentNames: (dbName) => ipcRenderer.invoke('get-document-names', dbName),
-  addDocumentsToDatabase: (dbName, filePaths, chunkSize, overlapPercentage) => ipcRenderer.invoke('add-documents-to-database', dbName, filePaths, chunkSize, overlapPercentage),
+  addDocumentsToDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => ipcRenderer.invoke('add-documents-to-database', dbName, filePaths, chunkSize, overlapPercentage, description),
   deleteDocumentFromDatabase: (dbName, documentIndex) => ipcRenderer.invoke('delete-document-from-database', dbName, documentIndex),
   retrievalAugmented: (chatId, chatHistory, activeDbId, k) => ipcRenderer.invoke('retrieval-augmented', chatId, chatHistory, activeDbId, k),
   loadSettings: () => ipcRenderer.invoke('load-settings'),

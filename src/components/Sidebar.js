@@ -68,7 +68,7 @@ const ChatListContainer = styled(Box)({
   overflowY: 'auto',
 });
 
-function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedChatId, databases, setDatabases, toggleTheme }) {
+function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedChatId, databases, dbDescriptions, setDatabases, toggleTheme }) {
   const { t } = useTranslation();
   
   const [activeTab, setActiveTab] = useState(0);
@@ -316,15 +316,16 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
             {t('createDatabase')}
           </Button>
 
-          {databases.map((dbName) => (
-            <DatabaseAccordion
-              key={dbName}
-              dbName={dbName}
-              databases={databases}
-              setDatabases={setDatabases}
-              handleOpenDeleteDialog={handleOpenDeleteDialog}
-            />
-          ))}
+        {databases.map((dbName, index) => (
+          <DatabaseAccordion
+            key={dbName}
+            dbName={dbName}
+            dbDescription={dbDescriptions[index]}
+            databases={databases}
+            setDatabases={setDatabases}
+            handleOpenDeleteDialog={handleOpenDeleteDialog}
+          />
+        ))}
         </ChatListContainer>
       )}
 

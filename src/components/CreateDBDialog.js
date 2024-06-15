@@ -71,12 +71,15 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
 }));
 
 const CustomTextField = styled(TextField)(({ theme }) => ({
-  marginTop: theme.spacing(2),  // マージンを調整して位置を合わせる
+  marginTop: theme.spacing(2),
+  '& .Mui-disabled': {
+    color: theme.palette.text.disabled,
+  },
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
-  marginTop: theme.spacing(2),  // マージンを調整して位置を合わせる
+  marginTop: theme.spacing(2),
 }));
 
 const ClearButton = styled(Button)(({ theme }) => ({
@@ -96,7 +99,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: '100%',
 }));
 
-const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
+const CreateDBDialog = ({ open, onClose, onCreate, dbName = null, dbDescription = null }) => {
   const { t } = useTranslation();
 
   const [newDatabaseName, setNewDatabaseName] = useState(dbName || '');
@@ -164,7 +167,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
       try {
         setIsCreating(true);
         setProgressMessage(t('startingDocumentAddition'));
-        await api.addDocumentsToDatabase(dbName, selectedFiles, chunkSize, overlapPercentage);
+        await api.addDocumentsToDatabase(dbName, selectedFiles, chunkSize, overlapPercentage, newDatabaseDescription);
         onCreate(dbName);
         setSelectedFiles([]);
         setIsCreating(false);
@@ -176,7 +179,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
         setIsCreating(false);
       }
     }
-  }, [dbName, selectedFiles, t, onCreate, chunkSize, overlapPercentage]);
+  }, [dbName, selectedFiles, t, onCreate, chunkSize, overlapPercentage, newDatabaseDescription]);
 
   const handleNameChange = useCallback((e) => {
     setNewDatabaseName(e.target.value);
@@ -226,7 +229,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
   useEffect(() => {
     if (!open) {
       setNewDatabaseName(dbName || '');
-      setNewDatabaseDescription('');
+      setNewDatabaseDescription(dbDescription || '');
       setSelectedFiles([]);
       setProgressMessage('');
       setChunkSize(512);
@@ -255,27 +258,28 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null }) => {
       <DialogTitle>{dbName ? t('addDocuments') : t('createNewDatabase')}</DialogTitle>
       <StyledDialogContent>
         <LeftColumn>
-          {!dbName && (
-            <CustomTextField
-              label={t('databaseName')}
-              value={newDatabaseName}
-              onChange={handleNameChange}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
-          )}
-          {!dbName && (
-            <CustomTextField
-              label={t('databaseDescription')}
-              value={newDatabaseDescription}
-              onChange={handleDescriptionChange}
-              fullWidth
-              multiline
-              rows={2}
-              placeholder={t('databaseDescriptionPlaceholder')}
-              InputLabelProps={{ shrink: true }}
-            />
-          )}
+          <CustomTextField
+            label={t('databaseName')}
+            value={newDatabaseName}
+            onChange={handleNameChange}
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            InputProps={{
+              readOnly: Boolean(dbName),
+              tabIndex: Boolean(dbName) ? -1 : 0,
+            }}
+            disabled={Boolean(dbName)}
+          />
+          <CustomTextField
+            label={t('databaseDescription')}
+            value={newDatabaseDescription}
+            onChange={handleDescriptionChange}
+            fullWidth
+            multiline
+            rows={2}
+            placeholder={t('databaseDescriptionPlaceholder')}
+            InputLabelProps={{ shrink: true }}
+          />
           <StyledFormControl>
             <Tooltip title={t('folderDepthTooltip')} arrow placement="top">
               <InputLabel id="folder-depth-select-label">{t('folderDepth')}</InputLabel>

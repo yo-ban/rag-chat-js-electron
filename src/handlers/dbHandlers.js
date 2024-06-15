@@ -112,7 +112,7 @@ ipcMain.handle('create-database', async (event, dbName, filePaths, chunkSize, ov
   });
 });
 
-ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chunkSize, overlapPercentage) => {
+ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chunkSize, overlapPercentage, description) => {
   return handleIpcMainEvent('add-documents-to-database', async () => {
 
     console.log("Database Name:", dbName);
@@ -123,7 +123,7 @@ ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chu
     };
 
     try {
-      await vectorDBService.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress);
+      await vectorDBService.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
       await reloadActiveDatabase(dbName); // ドキュメント追加後にアクティブなデータベースを再読み込み
     } catch (error) {
       throw error;
