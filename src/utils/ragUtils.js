@@ -120,7 +120,7 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
 }
 
 // 生成AIのレスポンスからクエリを抽出する関数
-function parseTransformedQueries(response) {
+function parseJsonResponse(response) {
   function fixJSON(jsonString) {
     // JSONの基本的な修正を行う関数
     try {
@@ -175,7 +175,7 @@ function generateAnalysisPrompt(chatHistory, topic, dbDescription) {
     .join("\n");
 
   // 関連情報の強化
-  const relevantInfoText = `Loaded DB description:
+  const relevantInfoText = `Available document databases:
 ${dbDescription}
 
 Chat topics infromation:
@@ -288,13 +288,10 @@ function determineInformationSufficientPrompt(chatHistory, topic, dbDescription,
     .join("\n");
 
   // 関連情報の設定
-  const relevantInfoText = `Loaded DB description:
-${dbDescription}
+  const relevantInfoText = `Chat topics infromation:
+${topic || "Not Provided"}`
 
-Chat topics infromation:
-${topic}`
-
-  return `You are an assistant that determines whether the user's latest question is too abstract or unclear and if follow-up questions are needed.
+  return `You are an assistant that determines whether document search is "possible" or "necessary" based on the user's latest question, recent chat history, and provided analysis.
 
 ## Context
 - Relevant information: 
@@ -310,20 +307,25 @@ ${latestQuestion.content}
 ${analysis}
 
 ## Instructions
-Based on the provided context, analyze the user's latest question. Determine if the question is too abstract or unclear and requires follow-up questions for clarification.
-Only if, after reviewing all relevant information, the recent chat history, the user's latest question, and the analysis, it is completely unclear what the user is asking, then follow-up questions should be deemed necessary.
-If follow-up questions are necessary, specify the areas that need clarification and output the result in JSON format as follows:
+Based on the provided context, analyze the user's latest question. Determine whether document search is "possible" or "necessary." Document search should be deemed "possible" or "necessary" if at least two of the following conditions are met:
+
+1. The user's question includes specific keywords or phrases that indicate a need for detailed information or data.
+2. The recent chat history provides context or details that could guide a meaningful document search.
+3. The provided analysis highlights relevant topics, keywords, or areas of interest that can be used for a document search.
+4. There is an indication that available documents might contain information that could help address the user's question.
+
+If at least two of these conditions are met, output the result in JSON format as follows:
 
 {
-  "requiresFollowUp": true,
-  "reason": "The user's question is too abstract and lacks specific details. Follow-up questions are needed for clarification in the following areas: [specific area 1], [specific area 2], [specific area 3]."
+  "documentSearch": true,
+  "reason": "The user's question and provided context contain sufficient information to perform a meaningful document search based on the following conditions: [specific conditions met]."
 }
 
-If no follow-up questions are needed, output the result in JSON format as follows:
+If fewer than two of these conditions are met, output the result in JSON format as follows:
 
 {
-  "requiresFollowUp": false,
-  "reason": "The user's question is clear and specific enough to proceed without follow-up questions."
+  "documentSearch": false,
+  "reason": "The user's question and provided context do not contain sufficient information to perform a meaningful document search or the search is not necessary. The reason for this conclusion is: [detailed reason why the search is not possible or necessary]. You should ask the user for more specific information or clarification to proceed."
 }
 
 Output only the JSON result and nothing else.
@@ -344,7 +346,7 @@ function generateTransformationPrompt(chatHistory, topic, analysis, dbDescriptio
     .join("\n");
 
   // 関連情報の強化
-  const relevantInfoText = `Loaded DB description:
+  const relevantInfoText = `Available document databases:
 ${dbDescription}
 
 Chat topics infromation:
@@ -406,7 +408,7 @@ function formatSearchResults(searchResults, queries, dbInfo) {
   
   serachInfo += "**Search Queries:**\n";
   queries.forEach(query => {
-    serachInfo += `- ${query.query}\n`;
+    serachInfo += `- ${query}\n`;
   });
 
   const resultsStr = searchResults.map((result, index) => {
@@ -482,7 +484,7 @@ function generateFollowUpPrompt(systemMessage, topic, followupReason) {
 
 module.exports = { 
   mergeAndRerankSearchResults, 
-  parseTransformedQueries,
+  parseJsonResponse,
   generateAnalysisPrompt,
   determineInformationSufficientPrompt,
   generateTransformationPrompt,

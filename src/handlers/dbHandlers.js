@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
 const fileProcessor = require('../utils/fileProcessor');
 const fs = require('fs');
-const { mergeAndRerankSearchResults, parseTransformedQueries, generateAnalysisPrompt, generateTransformationPrompt, determineInformationSufficientPrompt } = require('../utils/ragUtils');
+const { mergeAndRerankSearchResults, parseJsonResponse, generateAnalysisPrompt, generateTransformationPrompt, determineInformationSufficientPrompt } = require('../utils/ragUtils');
 
 const activeDatabases = {}; // DB IDとDBインスタンスのマップ
 
@@ -188,12 +188,12 @@ async function determine(chatHistory, chatData, dbDescription, analysis){
 
   // クエリ変換実行
   let response = "";
-  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 500, (content) => {
+  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.3, 500, (content) => {
     response += content;
   });
 
   // レスポンスをパース
-  const determineResult = parseTransformedQueries(response.trim());
+  const determineResult = parseJsonResponse(response.trim());
   return determineResult;
 }
 
@@ -210,7 +210,7 @@ async function transformQuery(chatHistory, analysis, chatData, dbDescription) {
   });
 
   // レスポンスをパース
-  const transformedQueries = parseTransformedQueries(response.trim());
+  const transformedQueries = parseJsonResponse(response.trim());
   return transformedQueries;
 }
 
@@ -236,9 +236,9 @@ ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeD
     
     let dbDescription = "";
     if (chatData.dbName){    
-      dbDescription = await vectorDBService.getDatabaseDescriptionByName(chatData.dbName);
+      dbDescription = `${chatData.dbName}: ${await vectorDBService.getDatabaseDescriptionByName(chatData.dbName)}`;
     }
-
+    console.log(dbDescription);
     event.sender.send('message-progress', 'analysisQuery');
     const analysisResult = await analysisQuery(chatHistory, chatData, dbDescription);
     console.log(`Query analysis result:\n${analysisResult}`);
@@ -246,10 +246,10 @@ ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeD
     const determineResult = await determine(chatHistory, chatData, dbDescription, analysisResult);
     console.log(`Determine information sufficient result:\n${JSON.stringify(determineResult)}`);
 
-    const requiresFollowUp = determineResult.requiresFollowUp;
+    const documentSearch = determineResult.documentSearch;
     const reason = determineResult.reason;
-    if (requiresFollowUp) {
-      return { requiresFollowUp, reason, transformedQueries:[], mergedResults:[] }
+    if (!documentSearch) {
+      return { documentSearch, reason, queries:[], mergedResults:[] }
     }
 
     event.sender.send('message-progress', 'transformQuery');
@@ -260,6 +260,6 @@ ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeD
     event.sender.send('message-progress', 'searchingInDatabase');
     const mergedResults = await similaritySearch(activeDbId, queries, k);
 
-    return { requiresFollowUp: false, reason: "", queries, mergedResults }
+    return { documentSearch: true, reason: "", queries, mergedResults }
   });
 });

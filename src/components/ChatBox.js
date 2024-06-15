@@ -119,14 +119,14 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     try {
 
       console.log("Start retrieval-augmented in ", activeDbId);
-      const { requiresFollowUp, reason, queries, mergedResults } = await api.retrievalAugmented(chatId, filteredMessages, activeDbId, k)
+      const { documentSearch, reason, queries, mergedResults } = await api.retrievalAugmented(chatId, filteredMessages, activeDbId, k)
 
-      return { requiresFollowUp, reason, queries, mergedResults };
+      return { documentSearch, reason, queries, mergedResults };
 
     } catch (error) {
       console.error('Error during similarity search:', error);
       toast.error(t('errorSearchingDocument'));
-      return { requiresFollowUp: false, reason: "", queries: [], mergedResults: [] };
+      return { documentSearch: false, reason: "", queries: [], mergedResults: [] };
     }
   };
 
@@ -162,10 +162,10 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     setIsSending(true);
 
     try {
-      const { requiresFollowUp, reason, queries, mergedResults } = await performSearch(newMessages);
+      const { documentSearch, reason, queries, mergedResults } = await performSearch(newMessages);
       setStatusMessage(t('generateResponse'));
       
-      if (requiresFollowUp) {
+      if (!documentSearch) {
         await api.sendMessageFollowup(newMessages, chatId, reason);
         console.log('Message sent (followup):', { newMessages, reason });  
       } else { 
