@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Stack, Tooltip, FormControl, InputLabel, Select } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
+import { AutoFixHigh } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -99,7 +100,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: '100%',
 }));
 
-const CreateDBDialog = ({ open, onClose, onCreate, dbName = null, dbDescription = null }) => {
+const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDescription = null }) => {
   const { t } = useTranslation();
 
   const [newDatabaseName, setNewDatabaseName] = useState(dbName || '');
@@ -140,6 +141,12 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null, dbDescription 
   const handleRemoveFile = useCallback((index) => {
     setSelectedFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   }, []);
+
+  const handleGenerateDbInfo = useCallback(async () => {
+    const { dbName: generatedDbName, dbDescription: generatedDbDescription } = await api.generateDbInfo(selectedFiles, language);
+    setNewDatabaseName(generatedDbName || '');
+    setNewDatabaseDescription(generatedDbDescription || '');  
+  }, [selectedFiles, language]);
 
   const handleCreateDatabase = useCallback(async () => {
     if (newDatabaseName && selectedFiles.length > 0) {
@@ -258,6 +265,18 @@ const CreateDBDialog = ({ open, onClose, onCreate, dbName = null, dbDescription 
       <DialogTitle>{dbName ? t('addDocuments') : t('createNewDatabase')}</DialogTitle>
       <StyledDialogContent>
         <LeftColumn>
+          {!dbName && (
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <StyledButton
+                variant="outlined"
+                startIcon={<AutoFixHigh />}
+                onClick={handleGenerateDbInfo}
+                disabled={selectedFiles.length === 0}
+              >
+                {t('generateDbInfo')}
+              </StyledButton>
+            </Box>
+          )}
           <CustomTextField
             label={t('databaseName')}
             value={newDatabaseName}

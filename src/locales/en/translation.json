@@ -7,6 +7,7 @@
   "databases": "Vector DBs",
   "newChat": "New Chat",
   "createDatabase": "Create Vector DB",
+  "generateDbInfo": "Generate DB Name and Description",
   "chatNameInput": "Chat Name",
   "selectDatabase": "Select Vector DB",
   "confirmDeleteDatabase": "Delete Vector DB",

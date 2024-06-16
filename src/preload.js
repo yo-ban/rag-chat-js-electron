@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electron', {
   openFileDialog: (options) => ipcRenderer.invoke('open-file-dialog', options),
   onDatabaseProgress: (callback) => ipcRenderer.on('database-progress', (event, message, dbName) => callback(message, dbName)),
   onMessageProgress: (callback) => ipcRenderer.on('message-progress', (event, message) => callback(message)),
+  generateDbInfo: (fileLists, language) => ipcRenderer.invoke('generate-db-info', fileLists, language),
   createDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => ipcRenderer.invoke('create-database', dbName, filePaths, chunkSize, overlapPercentage, description),
   loadDatabase: (dbName) => ipcRenderer.invoke('load-database', dbName),
   deleteDatabase: (dbName) => ipcRenderer.invoke('delete-database', dbName),

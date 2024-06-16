@@ -3,7 +3,7 @@ const chatService = require('../services/chatService');
 const vectorDBService = require('../services/vectorDBService');
 const llmService = require('../services/llmService');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
-const { generateQAPrompt, generateFollowUpPrompt } = require('../utils/ragUtils');
+const { generateQAPrompt, generateFollowUpPrompt, parseJsonResponse } = require('../utils/ragUtils');
 
 ipcMain.handle('send-message', async (event, messages, chatId, context = [], queries = []) => {
   return handleIpcMainEvent(event, async () => {
@@ -116,6 +116,45 @@ ipcMain.handle('generate-chat-name', async (event, messages, chatId) => {
   });
 });
 
+ipcMain.handle('generate-db-info', async (event, fileLists, language) => {
+  return handleIpcMainEvent(event, async () => {
+    const systemMessageToSend = "You are an AI specialized in generating database names and descriptions.";
+    const documentNames = fileLists.join('\n');
+    const prompt = `Based on the following list of document names, infer a useful and relevant short database name (a few characters) and a description (a few sentences) that accurately represent the contents and purpose of the documents. Ensure the database name is concise and the description is clear and informative.
+
+Provide the output in the following JSON format:
+{
+  "dbName": "short and clear database name (one word if possible)",
+  "dbDescription": "detailed description of the database (within 100 characters)"
+}
+
+The output should be in the ${language.toUpperCase()} language. Do not output anything other than the JSON object. Ensure the database name is clear and the description does not exceed 50 characters.
+
+Document names:
+${documentNames}`;
+
+    const messagesToSend = [
+      { role: 'system', content: systemMessageToSend },
+      { role: 'user', content: prompt }
+    ];
+
+    let assistantMessageContent = '';
+
+    await llmService.sendMessage(messagesToSend, 0.7, 256, (content) => {
+      assistantMessageContent += content;
+    });
+    
+    console.log(`Generated DB info:\n${assistantMessageContent}`);
+
+    try {
+      const dbInfo = parseJsonResponse(assistantMessageContent);
+      return { dbName: dbInfo.dbName, dbDescription: dbInfo.dbDescription };
+    } catch {
+      console.error("Error fixing JSON:", e);
+      return { dbName: "", dbDescription: "" };
+    }
+  });
+});
 
 ipcMain.handle('load-chats', async (event) => {
   return handleIpcMainEvent('load-chats', async () => await chatService.loadChats());

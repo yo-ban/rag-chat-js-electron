@@ -16,6 +16,7 @@ const api = {
   openFileDialog: (options) => window.electron.openFileDialog(options),
   onDatabaseProgress: (callback) => window.electron.onDatabaseProgress(callback),
   onMessageProgress: (callback) => window.electron.onMessageProgress(callback),
+  generateDbInfo: (fileLists, language) => window.electron.generateDbInfo(fileLists, language),
   createDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => window.electron.createDatabase(dbName, filePaths, chunkSize, overlapPercentage, description),
   loadDatabase: (dbName) => window.electron.loadDatabase(dbName),
   deleteDatabase: (dbName) => window.electron.deleteDatabase(dbName),

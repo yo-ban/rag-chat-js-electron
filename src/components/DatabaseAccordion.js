@@ -71,7 +71,7 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-const DatabaseAccordion = ({ dbName, dbDescription, databases, setDatabases, handleOpenDeleteDialog }) => {
+const DatabaseAccordion = ({ dbName, dbDescription, language, handleOpenDeleteDialog }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [documents, setDocuments] = useState([]);
@@ -160,6 +160,7 @@ const DatabaseAccordion = ({ dbName, dbDescription, databases, setDatabases, han
         open={createDBDialogOpen}
         onClose={handleCloseCreateDBDialog}
         onCreate={handleCreateDBDialogComplete}
+        language={language}
         dbName={dbName}
         dbDescription={dbDescription}
       />

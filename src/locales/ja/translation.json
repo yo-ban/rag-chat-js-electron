@@ -7,6 +7,7 @@
   "databases": "ベクトルDB",
   "newChat": "新しいチャット",
   "createDatabase": "新しいベクトルDBを作成",
+  "generateDbInfo": "DB名と概要を生成",
   "chatNameInput": "チャット名入力",
   "selectDatabase": "ベクトルDB選択",
   "confirmDeleteDatabase": "ベクトルDBの削除",
