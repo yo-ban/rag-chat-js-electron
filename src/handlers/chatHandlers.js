@@ -10,7 +10,7 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], que
     const chatData = await chatService.loadChatData(chatId);
     if (!chatData) throw new Error(`Chat data not found for chatId: ${chatId}`);
 
-    const { systemMessage, temperature, maxTokens, topic, dbName } = chatData;
+    const { systemMessage, temperature, maxTokens, maxHistoryLength, topic, dbName } = chatData;
 
     let dbInfo = "";
     if (chatData.dbName){
@@ -20,8 +20,15 @@ ipcMain.handle('send-message', async (event, messages, chatId, context = [], que
 
     const systemMessageToSend = generateQAPrompt(systemMessage, topic, context, queries, dbInfo);
 
-    const filteredMessages = messages.filter(message => message.role !== 'doc');
-    const messagesToSend = [{ role: 'system', content: systemMessageToSend }, ...filteredMessages];
+    let filteredMessages = [];
+    filteredMessages = messages.filter(message => message.role !== 'doc');
+
+    if (maxHistoryLength > 0) {
+      filteredMessages = filteredMessages.slice(-maxHistoryLength);
+    }
+
+    messagesToSend = [{ role: 'system', content: systemMessageToSend }, ...filteredMessages];
+
     let assistantMessageContent = '';
 
     // ストリーミングメッセージの完了を待つ

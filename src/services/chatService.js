@@ -26,6 +26,7 @@ const chatService = {
           systemMessage: chatData.systemMessage || 'You are a helpful assistant.',
           temperature: chatData.temperature || 0.5,
           maxTokens: chatData.maxTokens || 1024,
+          maxHistoryLength: chatData.maxHistoryLength || 6,
           dbName: chatData.dbName || null,
           updatedAt: chatData.updatedAt || Date.now(),
           searchResultsLimit: chatData.searchResultsLimit || 6,
@@ -63,6 +64,7 @@ const chatService = {
       messages: [],
       temperature: chatConfig.temperature || 0.5,
       maxTokens: chatConfig.maxTokens || 1024,
+      maxHistoryLength: chatConfig.maxHistoryLength || 6,
       updatedAt: Date.now(),
       dbName: dbName,
       searchResultsLimit: chatConfig.searchResultsLimit || 6,
@@ -157,6 +159,7 @@ const chatService = {
       dbName: chatData.dbName,
       preview: chatData.preview || previewMessage?.content || "",
       updatedAt: chatData.updatedAt,
+      maxHistoryLength: chatData.maxHistoryLength,
       searchResultsLimit: chatData.searchResultsLimit,
       topic: chatData.topic
     };

@@ -51,13 +51,14 @@ const StyledGridItem = styled(Grid)(({ theme }) => ({
   paddingRight: theme.spacing(1),
 }));
 
-const CreateChatDialog = ({ open, onClose, databases, onCreate, defaultTemperature, defaultMaxTokens, defaultSearchResultsLimit }) => {
+const CreateChatDialog = ({ open, onClose, databases, onCreate, defaultTemperature, defaultMaxTokens, defaultSearchResultsLimit, defaultMaxHistoryLength }) => {
   const { t } = useTranslation();
 
   const [selectedDatabase, setSelectedDatabase] = useState('None');
   const [chatName, setChatName] = useState(t('newChat'));
   const [temperature, setTemperature] = useState(0.5);
   const [maxTokens, setMaxTokens] = useState(1024);
+  const [maxHistoryLength, setMaxHistoryLength] = useState(6);
   const [searchResultsLimit, setSearchResultsLimit] = useState(6);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -66,8 +67,9 @@ const CreateChatDialog = ({ open, onClose, databases, onCreate, defaultTemperatu
       setTemperature(defaultTemperature);
       setMaxTokens(defaultMaxTokens);
       setSearchResultsLimit(defaultSearchResultsLimit);
+      setMaxHistoryLength(defaultMaxHistoryLength);
     }
-  }, [open, defaultTemperature, defaultMaxTokens, defaultSearchResultsLimit]);
+  }, [open, defaultTemperature, defaultMaxTokens, defaultSearchResultsLimit, defaultMaxHistoryLength]);
 
   const handleDatabaseSelect = useCallback((event) => {
     setSelectedDatabase(event.target.value);
@@ -78,11 +80,12 @@ const CreateChatDialog = ({ open, onClose, databases, onCreate, defaultTemperatu
       name: chatName,
       temperature: parseFloat(temperature),
       maxTokens: parseInt(maxTokens, 10),
-      searchResultsLimit: parseInt(searchResultsLimit, 10)
+      searchResultsLimit: parseInt(searchResultsLimit, 10),
+      maxHistoryLength: parseInt(maxHistoryLength, 10)
     };
     onCreate(selectedDatabase === 'None' ? null : selectedDatabase, chatConfig);
     onClose();
-  }, [selectedDatabase, chatName, temperature, maxTokens, searchResultsLimit, onCreate, onClose]);
+  }, [selectedDatabase, chatName, temperature, maxTokens, searchResultsLimit, maxHistoryLength, onCreate, onClose]);
 
   const toggleAdvancedSettings = () => {
     setShowAdvanced(!showAdvanced);

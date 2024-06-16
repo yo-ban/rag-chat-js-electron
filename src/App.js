@@ -113,6 +113,7 @@ function App() {
     systemMessage: 'You are a helpful assistant.',
     temperature: 0.5,
     maxTokens: 1024,
+    maxHistoryLength: 6,
     searchResultsLimit: 6
   });
 
@@ -194,12 +195,14 @@ function App() {
           systemMessage: settings.systemMessage,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
+          maxHistoryLength: settings.maxHistoryLength,
           searchResultsLimit: settings.searchResultsLimit
         });
         setDefaultSettings({
           systemMessage: settings.systemMessage,
           temperature: settings.temperature,
           maxTokens: settings.maxTokens,
+          maxHistoryLength: settings.maxHistoryLength,
           searchResultsLimit: settings.searchResultsLimit
         });
       } else {

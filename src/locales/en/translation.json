@@ -82,6 +82,8 @@
   "temperature": "Temperature",
   "maxTokens": "Max Tokens",
   "searchResultsLimit": "Search Results Limit",
+  "historyLength": "Number of history entries to send",
+  "historyLengthTooltip": "Sets the number of history entries to send during a chat. Setting it to 0 makes it unlimited.",
   "hideAdvancedSettings": "Hide Advanced Settings",
   "showAdvancedSettings": "Show Advanced Settings",
   "parameters": "Chat Parameters",

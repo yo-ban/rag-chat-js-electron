@@ -52,7 +52,7 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
     const tokens = tokenizer.tokenize(query);
     const parsedQuery = tokens.filter(token => token.pos === "名詞" && (token.pos_detail_1 === "一般" || token.pos_detail_1 === "固有名詞"))
     .map(token => token.surface_form)
-    .filter(keyword => keyword.length > 1);
+    .filter(keyword => keyword.length > 2);
     parsedQuery.forEach(keyword => keywordsSet.add(keyword));
   }
   const keywords = Array.from(keywordsSet); 

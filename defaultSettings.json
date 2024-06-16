@@ -35,6 +35,7 @@
   "systemMessage": "以下は、ユーザーの質問に関連する検索結果です。\n\n<search_results>\n{{DOCUMENTS}}\n</search_results>\n\n会話のトピックに関する背景情報はこちらです。\n\n<topic>\n{{TOPIC}}\n</topic>\n\n上記の検索結果とトピック情報を慎重に確認してください。その後、ユーザーの質問に答えるために検索結果とトピック情報をどのように活用するかについてのステップバイステップの思考過程を書き出してください。\n\n最後に、ユーザーの質問に対する回答を提供してください。\n回答をサポートする具体的な検索結果の番号や項目名を明記してください。",
   "temperature": 0.5,
   "maxTokens": 2048,
+  "maxHistoryLength": 6,
   "searchResultsLimit": 6,
   "language": "ja",
   "vectorDBSavePath": "data/",

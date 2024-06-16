@@ -35,6 +35,8 @@ const ParametersSection = ({
   setTemperature,
   maxTokens,
   setMaxTokens,
+  maxHistoryLength,
+  setMaxHistoryLength,
   searchResultsLimit,
   setSearchResultsLimit
 }) => {
@@ -55,6 +57,14 @@ const ParametersSection = ({
 
   const handleMaxTokensInputChange = (event) => {
     setMaxTokens(event.target.value === '' ? '' : Number(event.target.value));
+  };
+
+  const handleMaxHistoryLengthSliderChange = (event, newValue) => {
+    setMaxHistoryLength(newValue);
+  };
+
+  const handleMaxHistoryLengthInputChange = (event) => {
+    setMaxHistoryLength(event.target.value === '' ? '' : Number(event.target.value));
   };
 
   const handleSearchResultsLimitSliderChange = (event, newValue) => {
@@ -135,6 +145,42 @@ const ParametersSection = ({
                   min: 256,
                   max: 4096,
                   step: 256,
+                }}
+                sx={{ width: '80px' }}
+              />
+            </Stack>
+          </Grid>
+        </Grid>
+      </StyledBox>
+
+      <StyledBox>
+        <Typography variant="body2" id="history-length-slider" gutterBottom>
+          <Tooltip title={t('historyLengthTooltip')} arrow placement="top">
+            <span>{t('historyLength')}</span>
+          </Tooltip>
+        </Typography>
+        <Grid container alignItems="center">
+          <StyledGridItem item xs={9}>
+            <Slider
+              value={maxHistoryLength}
+              min={0}
+              max={20}
+              step={1}
+              onChange={handleMaxHistoryLengthSliderChange}
+              aria-labelledby="history-length-slider"
+              valueLabelDisplay="auto"
+            />
+          </StyledGridItem>
+          <Grid item xs={3}>
+            <Stack direction="row" alignItems="center" justifyContent="flex-end">
+              <StyledTextField
+                value={maxHistoryLength}
+                onChange={handleMaxHistoryLengthInputChange}
+                type="number"
+                inputProps={{
+                  min: 0,
+                  max: 20,
+                  step: 1,
                 }}
                 sx={{ width: '80px' }}
               />

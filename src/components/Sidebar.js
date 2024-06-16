@@ -113,6 +113,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
   const [defaultSystemPrompt, setDefaultSystemPrompt] = useState('You are a helpful assistant.');
   const [defaultTemperature, setDefaultTemperature] = useState(0.5);
   const [defaultMaxTokens, setDefaultMaxTokens] = useState(1024);
+  const [defaultMaxHistoryLength, setDefaultMaxHistoryLength] = useState(6);
   const [defaultSearchResultsLimit, setDefaultSearchResultsLimit] = useState(6);
   const [language, setLanguage] = useState("ja");
   const [vectorDBSavePath, setVectorDBSavePath] = useState("./");
@@ -161,6 +162,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         setDefaultSystemPrompt(settings.systemMessage || 'You are a helpful assistant.');
         setDefaultTemperature(settings.temperature || 0.5);
         setDefaultMaxTokens(settings.maxTokens || 1024);
+        setDefaultMaxHistoryLength(settings.maxHistoryLength || 6);
         setDefaultSearchResultsLimit(settings.searchResultsLimit || 6);
         setLanguage(settings.language || "ja");
         setVectorDBSavePath(settings.vectorDBSavePath || "./");
@@ -172,7 +174,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
     loadSettings();
   }, []);
   
-  const saveSettings = async (vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath) => {
+  const saveSettings = async (vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, maxHistoryLength, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath) => {
     setDefaultVender(vender);
     setDefaultEmbeddingsVender(embeddingsVender);
     setUseSeparateVenders(useSeparateVenders);
@@ -181,12 +183,13 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
     setDefaultSystemPrompt(systemMessage);
     setDefaultTemperature(temperature);
     setDefaultMaxTokens(maxTokens);
+    setDefaultMaxHistoryLength(maxHistoryLength);
     setDefaultSearchResultsLimit(searchResultsLimit);
     setLanguage(language);
     setVectorDBSavePath(vectorDBSavePath);
     setChatDataSavePath(chatDataSavePath);
   
-    await api.saveSettings({ vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath });
+    await api.saveSettings({ vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemMessage, temperature, maxTokens, maxHistoryLength, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath });
   };
 
   const handleTabChange = (event, newValue) => {
@@ -303,6 +306,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         defaultTemperature={defaultTemperature}
         defaultMaxTokens={defaultMaxTokens}
         defaultSearchResultsLimit={defaultSearchResultsLimit}
+        defaultMaxHistoryLength={defaultMaxHistoryLength}
       />
 
       {activeTab === 1 && (
@@ -363,6 +367,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         initialSystemPrompt={defaultSystemPrompt}
         initialTemperature={defaultTemperature}
         initialMaxTokens={defaultMaxTokens}
+        initialMaxHistoryLength={defaultMaxHistoryLength}
         initialSearchResultsLimit={defaultSearchResultsLimit}
         initialLanguage={language}
         initialVectorDBSavePath={vectorDBSavePath}

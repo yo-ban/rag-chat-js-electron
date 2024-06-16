@@ -76,6 +76,7 @@ const GlobalSettingsDialog = ({
   initialSystemPrompt,
   initialTemperature,
   initialMaxTokens,
+  initialMaxHistoryLength,
   initialSearchResultsLimit,
   initialLanguage,
   initialVectorDBSavePath,
@@ -92,6 +93,7 @@ const GlobalSettingsDialog = ({
   const [systemPrompt, setSystemPrompt] = useState(initialSystemPrompt);
   const [temperature, setTemperature] = useState(initialTemperature);
   const [maxTokens, setMaxTokens] = useState(initialMaxTokens);
+  const [maxHistoryLength, setMaxHistoryLength] = useState(initialMaxHistoryLength);
   const [searchResultsLimit, setSearchResultsLimit] = useState(initialSearchResultsLimit);
   const [language, setLanguage] = useState(initialLanguage);
   const [vectorDBSavePath, setVectorDBSavePath] = useState(initialVectorDBSavePath);
@@ -107,6 +109,7 @@ const GlobalSettingsDialog = ({
     setSystemPrompt(initialSystemPrompt);
     setTemperature(initialTemperature);
     setMaxTokens(initialMaxTokens);
+    setMaxHistoryLength(initialMaxHistoryLength);
     setSearchResultsLimit(initialSearchResultsLimit);
     setLanguage(initialLanguage);
     setVectorDBSavePath(initialVectorDBSavePath);
@@ -120,6 +123,7 @@ const GlobalSettingsDialog = ({
     initialSystemPrompt,
     initialTemperature,
     initialMaxTokens,
+    initialMaxHistoryLength,
     initialSearchResultsLimit,
     initialLanguage,
     initialVectorDBSavePath,
@@ -137,7 +141,7 @@ const GlobalSettingsDialog = ({
   };
 
   const handleSave = () => {
-    onSave(vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemPrompt, temperature, maxTokens, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath);
+    onSave(vender, embeddingsVender, useSeparateVenders, vendors, embeddingsVendors, systemPrompt, temperature, maxTokens, maxHistoryLength, searchResultsLimit, language, vectorDBSavePath, chatDataSavePath);
     onClose();
   };
 
@@ -443,6 +447,8 @@ const GlobalSettingsDialog = ({
               setTemperature={setTemperature}
               maxTokens={maxTokens}
               setMaxTokens={setMaxTokens}
+              maxHistoryLength={maxHistoryLength}
+              setMaxHistoryLength={setMaxHistoryLength}
               searchResultsLimit={searchResultsLimit}
               setSearchResultsLimit={setSearchResultsLimit}
             />

@@ -52,7 +52,8 @@ const SettingsDialog = ({ open, handleClose, activeChat, updateChat, databases }
   const [systemMessage, setSystemMessage] = useState('');
   const [temperature, setTemperature] = useState(1);
   const [maxTokens, setMaxTokens] = useState(1024);
-  const [searchResultsLimit, setSearchResultsLimit] = useState(5);
+  const [maxHistoryLength, setMaxHistoryLength] = useState(6);
+  const [searchResultsLimit, setSearchResultsLimit] = useState(6);
   const [preview, setPreview] = useState('');
   const [topic, setTopic] = useState('');
 
@@ -60,6 +61,7 @@ const SettingsDialog = ({ open, handleClose, activeChat, updateChat, databases }
     setSystemMessage(activeChat ? activeChat.systemMessage || '' : '');
     setTemperature(activeChat ? activeChat.temperature || 1 : 1);
     setMaxTokens(activeChat ? activeChat.maxTokens || 1024 : 1024);
+    setMaxHistoryLength(activeChat ? activeChat.maxHistoryLength || 6 : 6);
     setSearchResultsLimit(activeChat ? activeChat.searchResultsLimit || 6 : 6);
     setTopic(activeChat ? activeChat.topic || '' : '');
   }, [activeChat]);
@@ -71,11 +73,13 @@ const SettingsDialog = ({ open, handleClose, activeChat, updateChat, databases }
   }, [systemMessage, topic]);
 
   const handleSave = () => {
+
     updateChat({ 
       ...activeChat, 
       systemMessage,
       temperature: parseFloat(temperature),
       maxTokens: parseInt(maxTokens, 10),
+      maxHistoryLength: parseInt(maxHistoryLength, 10),
       searchResultsLimit: parseInt(searchResultsLimit, 10),
       topic: topic,
     });
@@ -106,6 +110,8 @@ const SettingsDialog = ({ open, handleClose, activeChat, updateChat, databases }
               setTemperature={setTemperature}
               maxTokens={maxTokens}
               setMaxTokens={setMaxTokens}
+              maxHistoryLength={maxHistoryLength}
+              setMaxHistoryLength={setMaxHistoryLength}
               searchResultsLimit={searchResultsLimit} 
               setSearchResultsLimit={setSearchResultsLimit} 
             />

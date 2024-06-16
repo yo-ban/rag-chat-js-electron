@@ -88,6 +88,8 @@
   "database": "ベクトルDB",
   "temperature": "温度",
   "maxTokens": "最大トークン数",
+  "historyLength": "送信する履歴の数",
+  "historyLengthTooltip": "チャット時に送信する履歴の数を設定します。0に設定すると無制限です。",
   "searchResultsLimit": "検索結果の制限",
   "hideAdvancedSettings": "詳細設定を隠す",
   "showAdvancedSettings": "詳細設定を表示",
