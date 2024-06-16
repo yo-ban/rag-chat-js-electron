@@ -7,6 +7,7 @@
   "databases": "Vector DBs",
   "newChat": "New Chat",
   "createDatabase": "Create Vector DB",
+  "databaseNameAlreadyExists": "Vector DB \"{{dbName}}\" already exists.",
   "generateDbInfo": "Generate DB Name and Description",
   "chatNameInput": "Chat Name",
   "selectDatabase": "Select Vector DB",

@@ -322,6 +322,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
             dbName={dbName}
             dbDescription={dbDescriptions[index]}
             language={language}
+            databases={databases}
             handleOpenDeleteDialog={handleOpenDeleteDialog}
           />
         ))}
@@ -333,6 +334,7 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
         onClose={handleCloseCreateDBDialog}
         onCreate={(dbName) => setDatabases([...databases, dbName])}
         language={language}
+        databases={databases}
       />
 
       <Dialog

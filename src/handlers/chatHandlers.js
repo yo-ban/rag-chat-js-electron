@@ -105,14 +105,19 @@ ipcMain.handle('generate-chat-name', async (event, messages, chatId) => {
     const messagesToSend = [{ role: 'system', content: systemMessageToSend }, ...filteredMessages, {role: 'user', content: prompt}];
     let assistantMessageContent = '';
 
-    await llmService.sendMessage(messagesToSend, 0.7, 256, (content) => {
-      assistantMessageContent += content;
-    });
-    
-    console.log("Generate chat name: ", assistantMessageContent);
+    try {
+      await llmService.sendMessage(messagesToSend, 0.7, 256, (content) => {
+        assistantMessageContent += content;
+      });
+      
+      console.log("Generate chat name: ", assistantMessageContent);
 
-    await chatService.saveChatName(chatId, assistantMessageContent);
-    return assistantMessageContent;
+      await chatService.saveChatName(chatId, assistantMessageContent);
+      return assistantMessageContent;
+    } catch {
+      console.error("Error generate chat name: ", e);
+      return ""
+    }
   });
 });
 
@@ -150,7 +155,7 @@ ${documentNames}`;
       const dbInfo = parseJsonResponse(assistantMessageContent);
       return { dbName: dbInfo.dbName, dbDescription: dbInfo.dbDescription };
     } catch {
-      console.error("Error fixing JSON:", e);
+      console.error("Error generate DB info: ", e);
       return { dbName: "", dbDescription: "" };
     }
   });

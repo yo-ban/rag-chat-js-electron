@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Stack, Tooltip, FormControl, InputLabel, Select } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
-import { AutoFixHigh } from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, InsertDriveFile as FileIcon, AutoFixHigh } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -100,7 +99,7 @@ const StyledFormControl = styled(FormControl)(({ theme }) => ({
   width: '100%',
 }));
 
-const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDescription = null }) => {
+const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName = null, dbDescription = null }) => {
   const { t } = useTranslation();
 
   const [newDatabaseName, setNewDatabaseName] = useState(dbName || '');
@@ -111,7 +110,8 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
   const [anchorEl, setAnchorEl] = useState(null);
   const [chunkSize, setChunkSize] = useState(512);
   const [overlapPercentage, setOverlapPercentage] = useState(25);
-  const [folderDepth, setFolderDepth] = useState(3)
+  const [folderDepth, setFolderDepth] = useState(3);
+  const [nameError, setNameError] = useState('');
   const toastId = useRef(null);
 
   const handleFileSelect = useCallback(async () => {
@@ -149,7 +149,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
   }, [selectedFiles, language]);
 
   const handleCreateDatabase = useCallback(async () => {
-    if (newDatabaseName && selectedFiles.length > 0) {
+    if (newDatabaseName && selectedFiles.length > 0 && !nameError) {
       try {
         setIsCreating(true);
         setProgressMessage(t('startingDatabaseCreation'));
@@ -167,7 +167,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
         setIsCreating(false);
       }
     }
-  }, [newDatabaseName, selectedFiles, t, onCreate, chunkSize, overlapPercentage, newDatabaseDescription]);
+  }, [newDatabaseName, selectedFiles, t, onCreate, chunkSize, overlapPercentage, newDatabaseDescription, nameError]);
 
   const handleAddDocuments = useCallback(async () => {
     if (dbName && selectedFiles.length > 0) {
@@ -189,8 +189,14 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
   }, [dbName, selectedFiles, t, onCreate, chunkSize, overlapPercentage, newDatabaseDescription]);
 
   const handleNameChange = useCallback((e) => {
-    setNewDatabaseName(e.target.value);
-  }, []);
+    const newName = e.target.value;
+    setNewDatabaseName(newName);
+    if (!dbName && databases.includes(newName)) {
+      setNameError(t('databaseNameAlreadyExists', {dbName: newName}));
+    } else {
+      setNameError('');
+    }
+  }, [databases, t, dbName]);
 
   const handleDescriptionChange = useCallback((e) => {
     setNewDatabaseDescription(e.target.value);
@@ -241,15 +247,16 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
       setProgressMessage('');
       setChunkSize(512);
       setOverlapPercentage(25);
+      setNameError('');
       if (toastId.current) {
         toast.dismiss(toastId.current);
         toastId.current = null;
       }
     }
-  }, [open, dbName]);
+  }, [open, dbName, dbDescription]);
 
   useEffect(() => {
-    const handleProgress = (message, dbName) => {
+    const handleProgress = (message) => {
       setProgressMessage(message);
     };
     
@@ -287,6 +294,8 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
               readOnly: Boolean(dbName),
               tabIndex: Boolean(dbName) ? -1 : 0,
             }}
+            error={!dbName && Boolean(nameError)}
+            helperText={!dbName && nameError}
             disabled={Boolean(dbName)}
           />
           <CustomTextField
@@ -438,7 +447,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, dbName = null, dbDe
         <Button onClick={onClose} color="primary" disabled={isCreating}>
           {t('cancel')}
         </Button>
-        <Button onClick={dbName ? handleAddDocuments : handleCreateDatabase} color="primary" disabled={isCreating || (!dbName && !newDatabaseName) || selectedFiles.length === 0}>
+        <Button onClick={dbName ? handleAddDocuments : handleCreateDatabase} color="primary" disabled={isCreating || (!dbName && (!newDatabaseName || nameError)) || selectedFiles.length === 0}>
           {dbName ? t('add') : t('create')}
         </Button>
       </DialogActions>

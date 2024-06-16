@@ -398,7 +398,7 @@ const processExcelFile = async (filePath, docNameToChunkIds, chunkSize, overlapP
     return new Document({
       pageContent: cleanAndNormalizeText(sheetText),
       metadata: {
-        title: sheetName,
+        title: `"${sheetName}" sheet`,
         source: filePath,
         timestamp: new Date().toISOString(),
       },
