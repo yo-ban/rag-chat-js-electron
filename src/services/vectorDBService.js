@@ -131,17 +131,19 @@ const vectorDBService = {
       const allChunks = [];
       const docNameToChunkIds = {};
 
+      const vectorStore = new FaissIPStore(vectorDBService.getEmbeddingsProvider(), {});
+      const dbPath = vectorDBService.getDbPath(dbId);
+
       for (const [index, filePath] of filePaths.entries()) {
         sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
         const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
         allChunks.push(...chunks);
+
+        const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
+        await vectorStore.addDocuments(chunks, { ids: chunkIds });    
       }
 
-      const vectorStore = new FaissIPStore(vectorDBService.getEmbeddingsProvider(), {});
-      const chunkIds = allChunks.map(chunk => chunk.metadata.chunkId);
-      await vectorStore.addDocuments(allChunks, { ids: chunkIds });
-
-      const dbPath = vectorDBService.getDbPath(dbId);
+      sendProgress(`Saving Database to ${dbPath}`);
       await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
       await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Database created: ${dbName} (ID: ${dbId})`);
@@ -151,6 +153,46 @@ const vectorDBService = {
       throw error;
     }
   },
+
+  addDocumentsToDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description) => {
+    try {
+      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
+      if (!dbId) {
+        throw new Error(`Database not found: ${dbName}`);
+      }
+      const dbPath = vectorDBService.getDbPath(dbId);
+      console.log(`Adding documents to database ${dbName} (ID: ${dbId})`);
+
+      const vectorStore = await vectorDBService.loadDatabase(dbName);
+      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
+
+      const allChunks = [];
+
+      for (const [index, filePath] of filePaths.entries()) {
+        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
+        const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+        allChunks.push(...chunks);
+
+        const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
+        await vectorStore.addDocuments(chunks, { ids: chunkIds });
+      }
+
+      const { databases, descriptions } = await vectorDBService.loadDatabases();      
+      if (description) {
+        descriptions[dbId] = description;
+      }
+      
+      sendProgress(`Saving Database to ${dbPath}`);
+      await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
+      await vectorDBService.saveDatabases({ databases, descriptions });
+      console.log(`Documents added to database ${dbName} (ID: ${dbId})`);
+
+    } catch (error) {
+      console.error('Error adding documents to database:', error);
+      throw error;
+    }
+  },
+
 
   loadDatabase: async (dbName) => {
     try {
@@ -181,47 +223,6 @@ const vectorDBService = {
     } catch (error) {
       console.error('Error getting document names:', error);
       return [];
-    }
-  },
-
-  addDocumentsToDatabase: async (dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description) => {
-    try {
-      const dbId = await vectorDBService.getDatabaseIdByName(dbName);
-      if (!dbId) {
-        throw new Error(`Database not found: ${dbName}`);
-      }
-      const dbPath = vectorDBService.getDbPath(dbId);
-      console.log(`Adding documents to database ${dbName} (ID: ${dbId})`);
-
-      const vectorStore = await vectorDBService.loadDatabase(dbName);
-      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
-
-      const allChunks = [];
-
-      for (const [index, filePath] of filePaths.entries()) {
-        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
-        const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-        allChunks.push(...chunks);
-      }
-
-      const chunkIds = allChunks.map(chunk => chunk.metadata.chunkId);
-      await vectorStore.addDocuments(allChunks, { ids: chunkIds });
-
-      // Load existing databases and descriptions
-      const { databases, descriptions } = await vectorDBService.loadDatabases();
-      
-      // Update the description if a new one is provided
-      if (description) {
-        descriptions[dbId] = description;
-      }
-
-      // Save the updated databases and descriptions
-      await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
-      await vectorDBService.saveDatabases({ databases, descriptions });
-      console.log(`Documents added to database ${dbName} (ID: ${dbId})`);
-    } catch (error) {
-      console.error('Error adding documents to database:', error);
-      throw error;
     }
   },
 

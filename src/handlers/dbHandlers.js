@@ -182,11 +182,11 @@ async function analysisQuery(chatHistory, chatData, dbDescription) {
 
 async function determine(chatHistory, chatData, dbDescription, analysis){
 
-  // クエリ変換プロンプトを生成
+  // 検索判断プロンプトを生成
   const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
   const prompt = determineInformationSufficientPrompt(filteredChatHistory, chatData.topic, dbDescription, analysis);
 
-  // クエリ変換実行
+  // 判断を実行
   let response = "";
   await llmService.sendMessage([{ role: 'user', content: prompt }], 0.3, 500, (content) => {
     response += content;

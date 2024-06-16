@@ -109,6 +109,7 @@
   "sendingMessage": "メッセージを送信中...",
   "typing": "入力中...",
   "placeholder": "メッセージを入力...",
+  "docName": "ドキュメント名",
   "result": "結果",
   "lines": "行",
   "score": "スコア",

@@ -414,8 +414,9 @@ function formatSearchResults(searchResults, queries, dbInfo) {
   const resultsStr = searchResults.map((result, index) => {
     const { pageContent, metadata = {}, combinedScore } = result;
     const source = metadata.source || 'Unknown source';
+    const title = metadata.title || 'Unknown title';
 
-    return `### Result ${index + 1}\n**Source:** ${source}\n**Content:** ${pageContent}\n**Score:** ${combinedScore}\n`;
+    return `### Result ${index + 1}\n**Source:** ${source}\n**Title:** ${title}\n**Content:** ${pageContent}\n**Score:** ${combinedScore}\n`;
   }).join('\n---\n');
 
   return `${serachInfo}

@@ -102,6 +102,7 @@
   "sendingMessage": "Sending message...",
   "typing": "Typing...",
   "placeholder": "Type a message...",
+  "docName": "Document Name",
   "result": "Result",
   "lines": "Lines",
   "score": "Score",

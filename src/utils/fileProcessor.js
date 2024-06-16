@@ -12,7 +12,8 @@ const { parse: csvParse } = require('csv-parse/sync');
 const xlsx = require('xlsx');
 const puppeteer = require('puppeteer');
 const pdfParse = require('pdf-parse');
-// const TurndownService = require('turndown').default;
+const { parseJsonResponse } = require('./ragUtils')
+const llmService = require('../services/llmService')
 
 const languageMapping = {
   '.cpp': 'cpp',
@@ -93,9 +94,51 @@ const splitMarkdownByHeadings = (markdown) => {
   return sections.map(section => section.trim()).filter(section => section.length > 0);
 };
 
+
+const generateDocTitle = async (content) => {
+  console.log("Generating document title via LLM");
+  const systemMessageToSend = "You are an AI specialized in generating document titles.";
+  const prompt = `Based on the following document content, extract a relevant title if it includes a clear and concise title-like string. If the document does not include a clear title, generate a suitable and relevant title that accurately represents the content. Ensure the title is in the same language as the provided content.
+
+Provide the output in the following JSON format:
+{
+  "title": "short and clear document title"
+}
+
+The output should be the same language as the document content. Do not output anything other than the JSON object. Ensure the title is clear and concise.
+
+Document content:
+${content}`;
+
+  const messagesToSend = [
+    { role: 'system', content: systemMessageToSend },
+    { role: 'user', content: prompt }
+  ];
+
+  let assistantMessageContent = '';
+
+  try {
+
+    await llmService.sendMessage(messagesToSend, 0.7, 256, (messageContent) => {
+      assistantMessageContent += messageContent;
+    });
+    
+    console.log(`Generated document title:\n${assistantMessageContent}`);
+
+    const title = parseJsonResponse(assistantMessageContent);
+    return title.title;
+
+  } catch (e) {
+    console.error("Error parsing JSON:", e);
+    return "";
+  }
+}
+
 const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing text file: ${filePath}`);
   const content = readFileWithEncoding(filePath);
+
+  const title = await generateDocTitle(content.slice(0, 350))
 
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
@@ -107,6 +150,7 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
     docs = sections.map((section, index) => new Document({
       pageContent: cleanAndNormalizeText(section),
       metadata: {
+        title: title,
         source: filePath,
         timestamp: new Date().toISOString(),
         sectionIndex: index + 1,
@@ -116,6 +160,7 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
     docs = [new Document({
       pageContent: cleanAndNormalizeText(content),
       metadata: {
+        title: title,
         source: filePath,
         timestamp: new Date().toISOString(),
       },
@@ -149,6 +194,7 @@ const processCodeFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(content),
     metadata: {
+      title: docName,
       source: filePath,
       timestamp: new Date().toISOString(),
     },
@@ -171,6 +217,8 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   const loader = new PDFLoader(filePath);
   const datas = await loader.load();
 
+  const title = await generateDocTitle(datas[0].pageContent.slice(0, 350))
+
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
@@ -178,6 +226,7 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
     return new Document({
       pageContent: cleanAndNormalizeText(data.pageContent),
       metadata: {
+        title: title,
         totalPages: data.metadata.pdf?.totalPages,
         pageNumber: data.metadata.loc?.pageNumber,
         source: filePath,
@@ -203,9 +252,12 @@ const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
+  const title = await generateDocTitle(data.value.slice(0, 350))
+
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(data.value),
     metadata: {
+      title: title,
       source: filePath,
       timestamp: new Date().toISOString(),
     },
@@ -234,6 +286,7 @@ const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(jsonString),
     metadata: {
+      title: docName,
       source: filePath,
       timestamp: new Date().toISOString(),
     },
@@ -266,6 +319,7 @@ const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
     const doc = new Document({
       pageContent: cleanAndNormalizeText(formattedContent),
       metadata: {
+        title: docName,
         source: filePath,
         timestamp: new Date().toISOString(),
         rowIndex: index + 1,
@@ -307,12 +361,15 @@ const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   // PDFバッファからテキストを抽出
   const extractedText = await extractTextFromPdfBuffer(pdfBuffer);
 
+  const title = await generateDocTitle(extractedText.slice(0, 350))
+  
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(extractedText),
     metadata: {
+      title: title,
       source: filePath,
       timestamp: new Date().toISOString(),
     },
@@ -341,9 +398,9 @@ const processExcelFile = async (filePath, docNameToChunkIds, chunkSize, overlapP
     return new Document({
       pageContent: cleanAndNormalizeText(sheetText),
       metadata: {
+        title: sheetName,
         source: filePath,
         timestamp: new Date().toISOString(),
-        sheetName: sheetName,
       },
     });
   });

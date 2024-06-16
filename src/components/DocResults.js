@@ -161,20 +161,23 @@ function DocResults({ results }) {
           const modalData = fileResults.map((result) => {
             const { pageContent, combinedScore, metadata = {}, originalIndex } = result;
             const filteredMetadata = Object.keys(metadata)
-              .filter(key => !excludedFields.includes(key))
+              .filter(key => !excludedFields.includes(key) && key !== 'title')
               .reduce((obj, key) => {
                 obj[key] = metadata[key];
                 return obj;
               }, {});
-  
+            
+            const title = metadata.title || '';
+          
             return {
               pageContent,
               combinedScore,
               metadata: filteredMetadata,
-              originalIndex
+              originalIndex,
+              title
             };
           });
-
+          
           return (
             <DocCard key={index}>
               <CustomCardContent>
@@ -234,6 +237,9 @@ function DocResults({ results }) {
             </Tabs>
             {modalContent.map((content, index) => (
               <TabPanel value={tabValue} index={index} key={index}>
+                <ModalText id="transition-modal-description">
+                  <strong>{t('docName')}:</strong> {content.title}
+                </ModalText>
                 <ModalText id="transition-modal-description">
                   <strong>{t('score')}:</strong> {content.combinedScore ? content.combinedScore.toFixed(2) : 'N/A'}
                 </ModalText>

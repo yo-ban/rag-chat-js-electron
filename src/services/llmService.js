@@ -22,7 +22,6 @@ const handleAzureOpenAIStream = async (stream, onData) => {
   }
 };
 
-
 const handleCohereStream = async (stream, onData) => {
   for await (const chat of stream) {
     if (chat.eventType === 'text-generation') {
