@@ -1,5 +1,5 @@
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
 const { getEncoding } = require('js-tiktoken');
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const { Document } = require("@langchain/core/documents");
@@ -83,10 +83,15 @@ const splitDocumentsByLanguage = async (docs, chunkSize, overlapPercentage, lang
   return await splitter.splitDocuments(docs);
 };
 
-const readFileWithEncoding = (filePath) => {
-  const buffer = fs.readFileSync(filePath);
-  const encoding = chardet.detect(buffer);
-  return iconvLite.decode(buffer, encoding);
+const readFileWithEncoding = async (filePath) => {
+  try {
+    const buffer = await fs.readFile(filePath); // 非同期でファイルを読み取る
+    const encoding = chardet.detect(buffer);
+    return iconvLite.decode(buffer, encoding);
+  } catch (error) {
+    console.error('Error reading file:', error);
+    throw error;
+  }
 };
 
 const splitMarkdownByHeadings = (markdown) => {
@@ -136,7 +141,7 @@ ${content}`;
 
 const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing text file: ${filePath}`);
-  const content = readFileWithEncoding(filePath);
+  const content = await readFileWithEncoding(filePath);
 
   const title = await generateDocTitle(content.slice(0, 350))
 
@@ -180,7 +185,7 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 
 const processCodeFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing code file: ${filePath}`);
-  const content = readFileWithEncoding(filePath);
+  const content = await readFileWithEncoding(filePath);
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
@@ -276,7 +281,7 @@ const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 
 const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing JSON file: ${filePath}`);
-  const content = readFileWithEncoding(filePath);
+  const content = await readFileWithEncoding(filePath);
   const jsonObject = JSON.parse(content);
 
   const docName = path.basename(filePath);
@@ -305,7 +310,7 @@ const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 
 const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing CSV file: ${filePath}`);
-  const content = readFileWithEncoding(filePath);
+  const content = await readFileWithEncoding(filePath);
   const records = csvParse(content, {
     columns: true,
     skip_empty_lines: true
@@ -353,7 +358,7 @@ const extractTextFromPdfBuffer = async (pdfBuffer) => {
 
 const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);
-  const content = readFileWithEncoding(filePath);
+  const content = await readFileWithEncoding(filePath);
 
   // HTMLをPDFバッファに変換
   const pdfBuffer = await convertHtmlToPdfBuffer(content);
@@ -417,21 +422,25 @@ const processExcelFile = async (filePath, docNameToChunkIds, chunkSize, overlapP
 };
 
 const fileProcessor = {
-  getAllFiles: (dirPath, extensions, fileList = [], depth = 0, maxDepth = 3) => {
+  getAllFiles: async (dirPath, extensions, fileList = [], depth = 0, maxDepth = 3) => {
     if (depth > maxDepth) return fileList;
-    const files = fs.readdirSync(dirPath);
-    console.log("files", files);
-    files.forEach((file) => {
+
+    const files = await fs.readdir(dirPath); // 非同期でディレクトリの内容を読み取る
+
+    for (const file of files) {
       const filePath = path.join(dirPath, file);
-      if (fs.statSync(filePath).isDirectory()) {
-        fileProcessor.getAllFiles(filePath, extensions, fileList, depth + 1, maxDepth);
+      const stats = await fs.stat(filePath);
+
+      if (stats.isDirectory()) {
+        await fileProcessor.getAllFiles(filePath, extensions, fileList, depth + 1, maxDepth);
       } else {
-        const ext = path.extname(file).toLowerCase(); 
-        if (extensions.includes(ext.slice(1))) { // ドットを除去
+        const ext = path.extname(file).toLowerCase();
+        if (extensions.includes(ext.slice(1))) {
           fileList.push(filePath);
         }
       }
-    });
+    }
+
     return fileList;
   },
   processFile: async (filePath, docNameToChunkIds, chunkSize = 512, overlapPercentage = 25) => {

@@ -5,7 +5,7 @@ const llmService = require('../services/llmService');
 const { v4: uuidv4 } = require('uuid');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
 const fileProcessor = require('../utils/fileProcessor');
-const fs = require('fs');
+const fs = require('fs').promises;
 const { mergeAndRerankSearchResults, parseJsonResponse, generateAnalysisPrompt, generateTransformationPrompt, determineInformationSufficientPrompt } = require('../utils/ragUtils');
 
 const activeDatabases = {}; // DB IDとDBインスタンスのマップ
@@ -63,9 +63,12 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
     if (!canceled && filePaths.length > 0) {
       const allFiles = [];
       const maxDepth = options.folderDepth || 3;
-      filePaths.forEach((filePath) => {
-        if (fs.statSync(filePath).isDirectory()) {
-          const filesInDir = fileProcessor.getAllFiles(
+
+      for (const filePath of filePaths) {
+        const stats = await fs.stat(filePath); // 非同期でファイルステータスを取得
+
+        if (stats.isDirectory()) {
+          const filesInDir = await fileProcessor.getAllFiles( // 非同期に変更
             filePath,
             [
               'cpp', 'go', 'java', 'js', 'php', 'proto', 'py', 'rst', 'rb', 'rs', 'scala', 'swift', 'tex', 
@@ -81,15 +84,13 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
         } else {
           allFiles.push(filePath);
         }
-      });
-      console.log(allFiles);
+      }
       return allFiles;
     } else {
       return null;
     }
   });
 });
-
 
 ipcMain.handle('load-databases', async () => {
   return handleIpcMainEvent('load-databases', async () => await vectorDBService.loadDatabases());
@@ -155,9 +156,9 @@ ipcMain.handle('delete-database', async (event, dbName) => {
     const dbId = await vectorDBService.getDatabaseIdByName(dbName);
     if (!dbId) throw new Error(`Database not found: ${dbName}`);
     const dbPath = vectorDBService.getDbPath(dbId);
-    
-    fs.rmSync(dbPath, { recursive: true, force: true });
-    
+
+    await fs.rm(dbPath, { recursive: true, force: true });
+
     const { databases, descriptions } = await vectorDBService.loadDatabases();
     delete databases[dbId];
     delete descriptions[dbId];

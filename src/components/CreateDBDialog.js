@@ -402,6 +402,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
               variant="outlined"
               startIcon={<AddIcon />}
               onClick={handleMenuOpen}
+              disabled={isCreating}
             >
               {t('addFiles')}
             </StyledButton>
@@ -419,6 +420,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={handleClearFiles}
+                disabled={isCreating}
               >
                 {t('clear')}
               </ClearButton>
