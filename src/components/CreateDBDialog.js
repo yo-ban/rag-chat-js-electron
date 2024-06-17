@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Stack, Tooltip, FormControl, InputLabel, Select } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, List, ListItem, ListItemText, IconButton, LinearProgress, Typography, Menu, MenuItem, Slider, Grid, Stack, Tooltip, FormControl, InputLabel, Select, CircularProgress } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, InsertDriveFile as FileIcon, AutoFixHigh } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { toast } from 'react-toastify';
@@ -106,6 +106,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
   const [newDatabaseDescription, setNewDatabaseDescription] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false); // ローディング状態を管理するstate
   const [progressMessage, setProgressMessage] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [chunkSize, setChunkSize] = useState(512);
@@ -115,24 +116,40 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
   const toastId = useRef(null);
 
   const handleFileSelect = useCallback(async () => {
-    const filePaths = await api.openFileDialog({ properties: ['openFile', 'multiSelections'], folderDepth: folderDepth });
-    if (filePaths) {
-      setSelectedFiles((prevFiles) => [
-        ...prevFiles,
-        ...filePaths.filter((filePath) => !prevFiles.includes(filePath)),
-      ]);
+    setIsLoadingFiles(true); // ローディング開始
+    try {
+      const filePaths = await api.openFileDialog({ properties: ['openFile', 'multiSelections'], folderDepth: folderDepth });
+      if (filePaths) {
+        setSelectedFiles((prevFiles) => [
+          ...prevFiles,
+          ...filePaths.filter((filePath) => !prevFiles.includes(filePath)),
+        ]);
+      }
+    } catch (error) {
+      console.error(t('fileSelectionFailed'), error);
+      toast.error(t('fileSelectionFailedWithMessage', {message: error.message}));
+    } finally {
+      setIsLoadingFiles(false); // ローディング終了
     }
-  }, [folderDepth]);
+  }, [folderDepth, t]);
 
   const handleFolderSelect = useCallback(async () => {
-    const folderPaths = await api.openFileDialog({ properties: ['openDirectory', 'multiSelections'], folderDepth: folderDepth });
-    if (folderPaths) {
-      setSelectedFiles((prevFiles) => [
-        ...prevFiles,
-        ...folderPaths.filter((folderPath) => !prevFiles.includes(folderPath)),
-      ]);
+    setIsLoadingFiles(true); // ローディング開始
+    try {
+      const folderPaths = await api.openFileDialog({ properties: ['openDirectory', 'multiSelections'], folderDepth: folderDepth });
+      if (folderPaths) {
+        setSelectedFiles((prevFiles) => [
+          ...prevFiles,
+          ...folderPaths.filter((folderPath) => !prevFiles.includes(folderPath)),
+        ]);
+      }
+    } catch (error) {
+      console.error(t('folderSelectionFailed'), error);
+      toast.error(t('folderSelectionFailedWithMessage', {message: error.message}));
+    } finally {
+      setIsLoadingFiles(false); // ローディング終了
     }
-  }, [folderDepth]);
+  }, [folderDepth, t]);
 
   const handleClearFiles = useCallback(() => {
     setSelectedFiles([]);
@@ -268,7 +285,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
   }, []);
     
   return (
-    <StyledDialog open={open} onClose={!isCreating ? onClose : null}>
+    <StyledDialog open={open} onClose={!isCreating && !isLoadingFiles ? onClose : null}>
       <DialogTitle>{dbName ? t('addDocuments') : t('createNewDatabase')}</DialogTitle>
       <StyledDialogContent>
         <LeftColumn>
@@ -402,7 +419,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
               variant="outlined"
               startIcon={<AddIcon />}
               onClick={handleMenuOpen}
-              disabled={isCreating}
+              disabled={isCreating || isLoadingFiles}
             >
               {t('addFiles')}
             </StyledButton>
@@ -420,23 +437,30 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={handleClearFiles}
-                disabled={isCreating}
+                disabled={isCreating || isLoadingFiles}
               >
                 {t('clear')}
               </ClearButton>
             )}
           </Box>
-          <FileList>
-            {selectedFiles.map((file, index) => (
-              <FileListItem key={index}>
-                <FileIcon />
-                <FileName primary={truncateFileName(file)} />
-                <StyledIconButton edge="end" aria-label="delete" onClick={() => handleRemoveFile(index)}>
-                  <DeleteIcon />
-                </StyledIconButton>
-              </FileListItem>
-            ))}
-          </FileList>
+          {isLoadingFiles ? (
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2}>
+              <CircularProgress />
+              <Typography variant="body2" ml={2}>{t('loadingFiles')}</Typography>
+            </Box>
+          ) : (
+            <FileList>
+              {selectedFiles.map((file, index) => (
+                <FileListItem key={index}>
+                  <FileIcon />
+                  <FileName primary={truncateFileName(file)} />
+                  <StyledIconButton edge="end" aria-label="delete" onClick={() => handleRemoveFile(index)}>
+                    <DeleteIcon />
+                  </StyledIconButton>
+                </FileListItem>
+              ))}
+            </FileList>
+          )}
           {isCreating && (
             <Box marginTop={2}>
               <LinearProgress />
@@ -446,7 +470,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
         </RightColumn>
       </StyledDialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="primary" disabled={isCreating}>
+        <Button onClick={onClose} color="primary" disabled={isCreating || isLoadingFiles}>
           {t('cancel')}
         </Button>
         <Button onClick={dbName ? handleAddDocuments : handleCreateDatabase} color="primary" disabled={isCreating || (!dbName && (!newDatabaseName || nameError)) || selectedFiles.length === 0}>
