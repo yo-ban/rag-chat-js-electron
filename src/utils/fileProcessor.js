@@ -85,7 +85,7 @@ const splitDocumentsByLanguage = async (docs, chunkSize, overlapPercentage, lang
 
 const readFileWithEncoding = async (filePath) => {
   try {
-    const buffer = await fs.readFile(filePath); // 非同期でファイルを読み取る
+    const buffer = await fs.readFile(filePath);
     const encoding = chardet.detect(buffer);
     return iconvLite.decode(buffer, encoding);
   } catch (error) {
@@ -143,6 +143,8 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   console.log(`Processing text file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
+  if (!content) return [];
+
   const title = await generateDocTitle(content.slice(0, 350))
 
   const docName = path.basename(filePath);
@@ -186,6 +188,9 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 const processCodeFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing code file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
+
+  if (!content) return [];
+
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
@@ -222,6 +227,8 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   const loader = new PDFLoader(filePath);
   const datas = await loader.load();
 
+  if (!datas || !datas[0]?.pageContent ) return [];
+
   const title = await generateDocTitle(datas[0].pageContent.slice(0, 350))
 
   const docName = path.basename(filePath);
@@ -254,6 +261,8 @@ const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   console.log(`Processing DOCX file: ${filePath}`);
   const data = await mammoth.extractRawText({ path: filePath });
 
+  if (!data ) return [];
+
   const docName = path.basename(filePath);
   docNameToChunkIds[docName] = [];
 
@@ -282,6 +291,9 @@ const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing JSON file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
+
+  if (!content ) return [];
+
   const jsonObject = JSON.parse(content);
 
   const docName = path.basename(filePath);
@@ -311,6 +323,9 @@ const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
 const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing CSV file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
+
+  if (!content ) return [];
+
   const records = csvParse(content, {
     columns: true,
     skip_empty_lines: true
@@ -359,6 +374,8 @@ const extractTextFromPdfBuffer = async (pdfBuffer) => {
 const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
+
+  if (!content ) return [];
 
   // HTMLをPDFバッファに変換
   const pdfBuffer = await convertHtmlToPdfBuffer(content);

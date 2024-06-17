@@ -138,9 +138,12 @@ const vectorDBService = {
         sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
         const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
         allChunks.push(...chunks);
-
-        const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
-        await vectorStore.addDocuments(chunks, { ids: chunkIds });    
+        if (chunks) {
+          const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
+          await vectorStore.addDocuments(chunks, { ids: chunkIds });
+        } else {
+          console.info("chunk is null, skip process.", path.basename(filePath))
+        }
       }
 
       sendProgress(`Saving Database to ${dbPath}`);
@@ -173,8 +176,12 @@ const vectorDBService = {
         const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
         allChunks.push(...chunks);
 
-        const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
-        await vectorStore.addDocuments(chunks, { ids: chunkIds });
+        if (chunks) {
+          const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
+          await vectorStore.addDocuments(chunks, { ids: chunkIds });  
+        } else {
+          console.info("chunk is null, skip process.", path.basename(filePath))
+        }
       }
 
       const { databases, descriptions } = await vectorDBService.loadDatabases();      
