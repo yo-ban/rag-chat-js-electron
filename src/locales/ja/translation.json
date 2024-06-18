@@ -70,6 +70,8 @@
   "chatDataSavePathTooltip": "チャット履歴の保存先フォルダを設定します。",
   "folderDepth": "再帰的に読み込むフォルダの階層",
   "folderDepthTooltip": "選択したフォルダから再帰的に読み込むフォルダの階層数を設定します。",
+  "excludePattern": "除外するファイル/フォルダ名（部分一致）",
+  "excludePatternPlaceholder": "aaa.txt, bbb.txt",
   "systemMessage": "システムプロンプト設定",
   "systemMessagePlaceholderDescription": "モデルの応答スタイルなどを制御するための文章です。{{DOCUMENTS}}には検索結果、{{TOPIC}}には設定したトピックがモデルへのリクエスト時に挿入されます。",
   "systemMessagePlaceholderExample": "例: ここに重要な情報があります:\n{{TOPIC}}\n\n関連するドキュメント:\n{{DOCUMENTS}}\n上記の情報を元に回答してください。",

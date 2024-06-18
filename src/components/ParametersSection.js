@@ -12,15 +12,19 @@ import {
 import { styled } from '@mui/material/styles';
 
 const StyledBox = styled(Box)(({ theme }) => ({
-  marginTop: theme.spacing(1),
+  marginTop: theme.spacing(3),
 }));
 
 const StyledSliderBox = styled(Box)(({ theme }) => ({
-  marginTop: theme.spacing(1),
+  marginTop: theme.spacing(3),
 }));
 
-const StyledGridItem = styled(Grid)(({ theme }) => ({
+const StyledGridSlider = styled(Grid)(({ theme }) => ({
   paddingRight: theme.spacing(1),
+}));
+
+const StyledGridText = styled(Grid)(({ theme }) => ({
+  paddingLeft: theme.spacing(4),
 }));
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
@@ -28,6 +32,14 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
     paddingTop: theme.spacing(2),
     paddingBottom: theme.spacing(2),
   },
+}));
+
+const StyledLabel = styled(Grid)(({ theme }) => ({
+  width: '160px',
+}));
+
+const StyledSlider = styled(Slider)(({ theme }) =>({
+  marginRight: theme.spacing(2)
 }));
 
 const ParametersSection = ({
@@ -82,14 +94,16 @@ const ParametersSection = ({
       </Typography>
 
       <StyledSliderBox>
-        <Typography variant="body2" id="temperature-slider" gutterBottom>
-          <Tooltip title={t('temperatureTooltip')} arrow placement="top">
-            <span>{t('temperature')}</span>
-          </Tooltip>
-        </Typography>
-        <Grid container alignItems="center">
-          <StyledGridItem item xs={9}>
-            <Slider
+        <Grid container alignItems="center" spacing={2}>
+          <StyledLabel item>
+            <Tooltip title={t('temperatureTooltip')} arrow placement="top">
+              <Typography variant="body2" id="temperature-slider">
+                {t('temperature')}
+              </Typography>
+            </Tooltip>
+          </StyledLabel>
+          <StyledGridSlider item xs>
+            <StyledSlider
               value={temperature}
               min={0}
               max={1}
@@ -98,8 +112,8 @@ const ParametersSection = ({
               aria-labelledby="temperature-slider"
               valueLabelDisplay="auto"
             />
-          </StyledGridItem>
-          <Grid item xs={3}>
+          </StyledGridSlider>
+          <StyledGridText item>
             <Stack direction="row" alignItems="center" justifyContent="flex-end">
               <StyledTextField
                 value={temperature}
@@ -113,19 +127,21 @@ const ParametersSection = ({
                 sx={{ width: '80px' }}
               />
             </Stack>
-          </Grid>
+          </StyledGridText>
         </Grid>
       </StyledSliderBox>
 
       <StyledBox>
-        <Typography variant="body2" id="max-tokens-slider" gutterBottom>
-          <Tooltip title={t('maxTokensTooltip')} arrow placement="top">
-            <span>{t('maxTokens')}</span>
-          </Tooltip>
-        </Typography>
-        <Grid container alignItems="center">
-          <StyledGridItem item xs={9}>
-            <Slider
+        <Grid container alignItems="center" spacing={2}>
+          <StyledLabel item>
+            <Tooltip title={t('maxTokensTooltip')} arrow placement="top">
+              <Typography variant="body2" id="max-tokens-slider">
+                {t('maxTokens')}
+              </Typography>
+            </Tooltip>
+          </StyledLabel>
+          <StyledGridSlider item xs>
+            <StyledSlider
               value={maxTokens}
               min={256}
               max={4096}
@@ -134,8 +150,8 @@ const ParametersSection = ({
               aria-labelledby="max-tokens-slider"
               valueLabelDisplay="auto"
             />
-          </StyledGridItem>
-          <Grid item xs={3}>
+          </StyledGridSlider>
+          <StyledGridText item>
             <Stack direction="row" alignItems="center" justifyContent="flex-end">
               <StyledTextField
                 value={maxTokens}
@@ -149,19 +165,21 @@ const ParametersSection = ({
                 sx={{ width: '80px' }}
               />
             </Stack>
-          </Grid>
+          </StyledGridText>
         </Grid>
       </StyledBox>
 
       <StyledBox>
-        <Typography variant="body2" id="history-length-slider" gutterBottom>
-          <Tooltip title={t('historyLengthTooltip')} arrow placement="top">
-            <span>{t('historyLength')}</span>
-          </Tooltip>
-        </Typography>
-        <Grid container alignItems="center">
-          <StyledGridItem item xs={9}>
-            <Slider
+        <Grid container alignItems="center" spacing={2}>
+          <StyledLabel item>
+            <Tooltip title={t('historyLengthTooltip')} arrow placement="top">
+              <Typography variant="body2" id="history-length-slider">
+                {t('historyLength')}
+              </Typography>
+            </Tooltip>
+          </StyledLabel>
+          <StyledGridSlider item xs>
+            <StyledSlider
               value={maxHistoryLength}
               min={0}
               max={20}
@@ -170,8 +188,8 @@ const ParametersSection = ({
               aria-labelledby="history-length-slider"
               valueLabelDisplay="auto"
             />
-          </StyledGridItem>
-          <Grid item xs={3}>
+          </StyledGridSlider>
+          <StyledGridText item>
             <Stack direction="row" alignItems="center" justifyContent="flex-end">
               <StyledTextField
                 value={maxHistoryLength}
@@ -185,19 +203,21 @@ const ParametersSection = ({
                 sx={{ width: '80px' }}
               />
             </Stack>
-          </Grid>
+          </StyledGridText>
         </Grid>
       </StyledBox>
 
       <StyledBox>
-        <Typography variant="body2" id="search-results-limit-slider" gutterBottom>
-          <Tooltip title={t('searchResultsLimitTooltip')} arrow placement="top">
-            <span>{t('searchResultsLimit')}</span>
-          </Tooltip>
-        </Typography>
-        <Grid container alignItems="center">
-          <StyledGridItem item xs={9}>
-            <Slider
+        <Grid container alignItems="center" spacing={2}>
+          <StyledLabel item>
+            <Tooltip title={t('searchResultsLimitTooltip')} arrow placement="top">
+              <Typography variant="body2" id="search-results-limit-slider">
+                {t('searchResultsLimit')}
+              </Typography>
+            </Tooltip>
+          </StyledLabel>
+          <StyledGridSlider item xs>
+            <StyledSlider
               value={searchResultsLimit}
               min={1}
               max={10}
@@ -206,8 +226,8 @@ const ParametersSection = ({
               aria-labelledby="search-results-limit-slider"
               valueLabelDisplay="auto"
             />
-          </StyledGridItem>
-          <Grid item xs={3}>
+          </StyledGridSlider>
+          <StyledGridText item>
             <Stack direction="row" alignItems="center" justifyContent="flex-end">
               <StyledTextField
                 value={searchResultsLimit}
@@ -221,7 +241,7 @@ const ParametersSection = ({
                 sx={{ width: '80px' }}
               />
             </Stack>
-          </Grid>
+          </StyledGridText>
         </Grid>
       </StyledBox>
     </div>

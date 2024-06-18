@@ -64,6 +64,22 @@ const StyledPlaceholderContainer = styled(Grid)(({ theme }) => ({
   gap: theme.spacing(1),
 }));
 
+const CustomTextField = styled(TextField)(({ theme }) => ({
+  // marginTop: theme.spacing(2),
+  '& .Mui-disabled': {
+    color: theme.palette.text.disabled,
+  },
+  '& .MuiInputBase-input': {
+    padding: "12px 12px",
+  }
+}));
+
+const CustomSelect = styled(Select)(({ theme}) => ({
+  '& .MuiInputBase-input': {
+    padding: "12px 12px",
+  }
+}));
+
 const GlobalSettingsDialog = ({
   open,
   onClose,
@@ -205,7 +221,7 @@ const GlobalSettingsDialog = ({
               <Tooltip title={t('vectorDBSavePathTooltip')} arrow placement="top">
                 <StyledInputLabel id="vector-db-save-path-label" shrink>{t('vectorDBSavePath')}</StyledInputLabel>
               </Tooltip>
-              <TextField
+              <CustomTextField
                 fullWidth
                 value={vectorDBSavePath}
                 onChange={(e) => setVectorDBSavePath(e.target.value)}
@@ -216,7 +232,7 @@ const GlobalSettingsDialog = ({
               <Tooltip title={t('chatDataSavePathTooltip')} arrow placement="top">
                 <StyledInputLabel id="chat-data-save-path-label" shrink>{t('chatDataSavePath')}</StyledInputLabel>
               </Tooltip>
-              <TextField
+              <CustomTextField
                 fullWidth
                 value={chatDataSavePath}
                 onChange={(e) => setChatDataSavePath(e.target.value)}
@@ -225,14 +241,14 @@ const GlobalSettingsDialog = ({
 
             <FormControl fullWidth margin="normal">
               <StyledInputLabel id="language-label" shrink>{t('language')}</StyledInputLabel>
-              <Select
+              <CustomSelect
                 labelId="language-label"
                 value={language}
                 onChange={handleLanguageChange}
               >
                 <MenuItem value="ja">日本語</MenuItem>
                 <MenuItem value="en">English</MenuItem>
-              </Select>
+              </CustomSelect>
             </FormControl>
 
             <Divider style={{ margin: '20px 0' }} />
@@ -240,7 +256,7 @@ const GlobalSettingsDialog = ({
             <Typography variant="subtitle1">{t('apiSettings')}</Typography>
             <FormControl fullWidth margin="normal">
               <StyledInputLabel id="vender-label" shrink>{t('vender')}</StyledInputLabel>
-              <Select
+              <CustomSelect
                 labelId="vender-label"
                 value={vender}
                 onChange={handleVenderChange}
@@ -248,12 +264,12 @@ const GlobalSettingsDialog = ({
                 {Object.keys(vendors).map((key) => (
                   <MenuItem value={key} key={key}>{key}</MenuItem>
                 ))}
-              </Select>
+              </CustomSelect>
             </FormControl>
 
             <FormControl fullWidth margin="normal">
               <StyledInputLabel id="api-key-label" shrink>{t('apiKey')}</StyledInputLabel>
-              <TextField
+              <CustomTextField
                 fullWidth
                 type="password"
                 value={currentVenderSettings.apiKey || ''}
@@ -265,7 +281,7 @@ const GlobalSettingsDialog = ({
 
             <FormControl fullWidth margin="normal">
               <StyledInputLabel id="base-url-label" shrink>{t('baseUrl')}</StyledInputLabel>
-              <TextField
+              <CustomTextField
                 fullWidth
                 value={currentVenderSettings.baseUrl || ''}
                 onChange={(e) => handleVendorSettingChange('baseUrl', e.target.value)}
@@ -277,7 +293,7 @@ const GlobalSettingsDialog = ({
               <>
                 <FormControl fullWidth margin="normal">
                   <StyledInputLabel id="deployment-name-label" shrink>{t('deploymentName')}</StyledInputLabel>
-                  <TextField
+                  <CustomTextField
                     fullWidth
                     value={currentVenderSettings.deploymentName || ''}
                     onChange={(e) => handleVendorSettingChange('deploymentName', e.target.value)}
@@ -285,7 +301,7 @@ const GlobalSettingsDialog = ({
                 </FormControl>
                 <FormControl fullWidth margin="normal">
                   <StyledInputLabel id="embeddings-deployment-name-label" shrink>{t('embeddingsDeploymentName')}</StyledInputLabel>
-                  <TextField
+                  <CustomTextField
                     fullWidth
                     value={currentVenderSettings.embeddingsDeploymentName || ''}
                     onChange={(e) => handleVendorSettingChange('embeddingsDeploymentName', e.target.value)}
@@ -297,7 +313,7 @@ const GlobalSettingsDialog = ({
             {vender !== 'azure' && (
               <FormControl fullWidth margin="normal">
                 <StyledInputLabel id="model-name-label" shrink>{t('modelNameOptional')}</StyledInputLabel>
-                <TextField
+                <CustomTextField
                   fullWidth
                   value={currentVenderSettings.modelName || ''}
                   onChange={(e) => handleVendorSettingChange('modelName', e.target.value)}
@@ -308,7 +324,7 @@ const GlobalSettingsDialog = ({
             {vender === 'openai' && (
               <FormControl fullWidth margin="normal">
                 <StyledInputLabel id="model-name-label" shrink>{t('embeddingsModelNameOptional')}</StyledInputLabel>
-                <TextField
+                <CustomTextField
                   fullWidth
                   value={currentVenderSettings.embeddingsModelName || ''}
                   onChange={(e) => handleVendorSettingChange('embeddingsModelName', e.target.value)}
@@ -330,7 +346,7 @@ const GlobalSettingsDialog = ({
               <>
                 <FormControl fullWidth margin="normal">
                   <StyledInputLabel id="embeddings-vender-label" shrink>{t('embeddingsVender')}</StyledInputLabel>
-                  <Select
+                  <CustomSelect
                     labelId="embeddings-vender-label"
                     value={embeddingsVender}
                     onChange={handleEmbeddingsVenderChange}
@@ -338,12 +354,12 @@ const GlobalSettingsDialog = ({
                     {Object.keys(embeddingsVendors).map((key) => (
                       <MenuItem value={key} key={key}>{key}</MenuItem>
                     ))}
-                  </Select>
+                  </CustomSelect>
                 </FormControl>
 
                 <FormControl fullWidth margin="normal">
                   <StyledInputLabel id="embeddings-api-key-label" shrink>{t('embeddingsApiKey')}</StyledInputLabel>
-                  <TextField
+                  <CustomTextField
                     fullWidth
                     type="password"
                     value={currentEmbeddingsVenderSettings.apiKey || ''}
@@ -353,7 +369,7 @@ const GlobalSettingsDialog = ({
 
                 <FormControl fullWidth margin="normal">
                   <StyledInputLabel id="embeddings-base-url-label" shrink>{t('baseUrl')}</StyledInputLabel>
-                  <TextField
+                  <CustomTextField
                     fullWidth
                     value={currentEmbeddingsVenderSettings.baseUrl || ''}
                     onChange={(e) => handleEmbeddingsVendorSettingChange('baseUrl', e.target.value)}
@@ -363,7 +379,7 @@ const GlobalSettingsDialog = ({
                 {embeddingsVender === 'azure' && (
                   <FormControl fullWidth margin="normal">
                     <StyledInputLabel id="embeddings-deployment-name-label" shrink>{t('embeddingsDeploymentName')}</StyledInputLabel>
-                    <TextField
+                    <CustomTextField
                       fullWidth
                       value={currentEmbeddingsVenderSettings.embeddingsDeploymentName || ''}
                       onChange={(e) => handleEmbeddingsVendorSettingChange('embeddingsDeploymentName', e.target.value)}
@@ -374,7 +390,7 @@ const GlobalSettingsDialog = ({
                 {embeddingsVender !== 'azure' && (
                   <FormControl fullWidth margin="normal">
                     <StyledInputLabel id="embeddings-model-name-label" shrink>{t('modelNameOptional')}</StyledInputLabel>
-                    <TextField
+                    <CustomTextField
                       fullWidth
                       value={currentEmbeddingsVenderSettings.embeddingsModelName || ''}
                       onChange={(e) => handleEmbeddingsVendorSettingChange('embeddingsModelName', e.target.value)}

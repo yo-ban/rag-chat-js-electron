@@ -63,6 +63,8 @@
   "chatDataSavePathTooltip": "Sets the folder where chat history will be saved.",
   "folderDepth": "Folder Depth",
   "folderDepthTooltip": "Sets the number of levels to recursively read folders.",
+  "excludePattern": "File/folder name to exclude (partial match)",
+  "excludePatternPlaceholder": "aaa.txt, bbb.txt",
   "systemMessage": "System Prompt",
   "systemMessagePlaceholderDescription": "This text controls the response style of the model. {{DOCUMENTS}} will be replaced with search results and {{TOPIC}} will be replaced with the set topic when making a request to the model.",
   "systemMessagePlaceholderExample": "Example: Here is important information:\n{{TOPIC}}\n\nRelated documents:\n{{DOCUMENTS}}\nPlease respond based on the above information.",
