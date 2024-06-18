@@ -75,6 +75,22 @@ const CustomTextField = styled(TextField)(({ theme }) => ({
   '& .Mui-disabled': {
     color: theme.palette.text.disabled,
   },
+  '& .MuiInputBase-input': {
+    padding: "12px 12px",
+  }
+}));
+
+const CustomTextFieldMutiline = styled(TextField)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  '& .Mui-disabled': {
+    color: theme.palette.text.disabled,
+  },
+  '& .MuiInputBase-root': {
+    padding: "0px 0px",
+  },
+  '& .MuiInputBase-input': {
+    padding: "12px 12px",
+  }
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
@@ -113,6 +129,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
   const [overlapPercentage, setOverlapPercentage] = useState(25);
   const [folderDepth, setFolderDepth] = useState(3);
   const [nameError, setNameError] = useState('');
+  const [excludePattern, setExcludePattern] = useState(''); // 除外パターンを管理するstate
   const toastId = useRef(null);
 
   const handleFileSelect = useCallback(async () => {
@@ -120,9 +137,10 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
     try {
       const filePaths = await api.openFileDialog({ properties: ['openFile', 'multiSelections'], folderDepth: folderDepth });
       if (filePaths) {
+        const excludePatterns = excludePattern.split(',').map(pattern => pattern.trim());
         setSelectedFiles((prevFiles) => [
           ...prevFiles,
-          ...filePaths.filter((filePath) => !prevFiles.includes(filePath)),
+          ...filePaths.filter((filePath) => !prevFiles.includes(filePath) && excludePatterns.every(pattern => !filePath.includes(pattern))),
         ]);
       }
     } catch (error) {
@@ -131,16 +149,17 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
     } finally {
       setIsLoadingFiles(false); // ローディング終了
     }
-  }, [folderDepth, t]);
-
+  }, [folderDepth, t, excludePattern]);
+  
   const handleFolderSelect = useCallback(async () => {
     setIsLoadingFiles(true); // ローディング開始
     try {
       const folderPaths = await api.openFileDialog({ properties: ['openDirectory', 'multiSelections'], folderDepth: folderDepth });
       if (folderPaths) {
+        const excludePatterns = excludePattern.split(',').map(pattern => pattern.trim());
         setSelectedFiles((prevFiles) => [
           ...prevFiles,
-          ...folderPaths.filter((folderPath) => !prevFiles.includes(folderPath)),
+          ...folderPaths.filter((folderPath) => !prevFiles.includes(folderPath) && excludePatterns.every(pattern => !folderPath.includes(pattern))),
         ]);
       }
     } catch (error) {
@@ -149,7 +168,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
     } finally {
       setIsLoadingFiles(false); // ローディング終了
     }
-  }, [folderDepth, t]);
+  }, [folderDepth, t, excludePattern]);
 
   const handleClearFiles = useCallback(() => {
     setSelectedFiles([]);
@@ -219,6 +238,10 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
     setNewDatabaseDescription(e.target.value);
   }, []);
 
+  const handleExcludePatternChange = useCallback((e) => {
+    setExcludePattern(e.target.value);
+  }, []);
+
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -265,6 +288,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
       setChunkSize(512);
       setOverlapPercentage(25);
       setNameError('');
+      setExcludePattern('');
       if (toastId.current) {
         toast.dismiss(toastId.current);
         toastId.current = null;
@@ -315,7 +339,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
             helperText={!dbName && nameError}
             disabled={Boolean(dbName)}
           />
-          <CustomTextField
+          <CustomTextFieldMutiline
             label={t('databaseDescription')}
             value={newDatabaseDescription}
             onChange={handleDescriptionChange}
@@ -342,6 +366,13 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
               ))}
             </Select>
           </StyledFormControl>
+          <CustomTextField
+              label={t('excludePattern')}
+              value={excludePattern}
+              onChange={handleExcludePatternChange}
+              placeholder={t('excludePatternPlaceholder')}
+              InputLabelProps={{ shrink: true }}
+          />
           <StyledSliderBox>
             <Typography id="chunk-size-slider" gutterBottom>
               <Tooltip title={t('chunkSizeTooltip')} arrow placement="top">
@@ -362,7 +393,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
               </StyledGridItem>
               <Grid item xs={3}>
                 <Stack direction="row" alignItems="center" justifyContent="flex-end">
-                  <TextField
+                  <CustomTextField
                     value={chunkSize}
                     onChange={handleChunkSizeInputChange}
                     type="number"
@@ -397,7 +428,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
               </StyledGridItem>
               <Grid item xs={3}>
                 <Stack direction="row" alignItems="center" justifyContent="flex-end">
-                  <TextField
+                  <CustomTextField
                     value={overlapPercentage}
                     onChange={handleOverlapPercentageInputChange}
                     type="number"
