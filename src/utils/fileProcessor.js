@@ -14,6 +14,7 @@ const puppeteer = require('puppeteer');
 const pdfParse = require('pdf-parse');
 const { parseJsonResponse } = require('./ragUtils')
 const llmService = require('../services/llmService')
+const crypto = require('crypto');
 
 const languageMapping = {
   '.cpp': 'cpp',
@@ -462,32 +463,47 @@ const fileProcessor = {
   },
   processFile: async (filePath, docNameToChunkIds, chunkSize = 512, overlapPercentage = 25) => {
     const ext = path.extname(filePath).toLowerCase();
+    const docName = path.basename(filePath);
+    const fileContent = await readFileWithEncoding(filePath);
+    const fileHash = crypto.createHash('md5').update(fileContent).digest('hex');
+    
+    let chunks;
     if (languageMapping[ext]) {
-      return await processCodeFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+      chunks = await processCodeFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+    } else {
+      switch (ext) {
+        case '.yaml':
+        case '.yml':
+        case '.txt':
+        case '.md':
+        case '.markdown':
+          chunks = await processTextFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.pdf':
+          chunks = await processPdfFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.docx':
+          chunks = await processDocxFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.json':
+          chunks = await processJsonFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.csv':
+          chunks = await processCsvFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.html':
+        case '.htm':
+          chunks = await processHtmlFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        case '.xlsx':
+          chunks = await processExcelFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          break;
+        default:
+          throw new Error(`Unsupported file format: ${ext}`);
+      }
     }
-    switch (ext) {
-      case '.yaml':
-      case '.yml':
-      case '.txt':
-      case '.md':
-      case '.markdown':
-        return await processTextFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.pdf':
-        return await processPdfFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.docx':
-        return await processDocxFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.json':
-        return await processJsonFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.csv':
-        return await processCsvFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.html':
-      case '.htm':
-          return await processHtmlFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      case '.xlsx':
-        return await processExcelFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
-      default:
-        throw new Error(`Unsupported file format: ${ext}`);
-    }
+    
+    return { chunks, docName, fileHash };
   }
 };
 

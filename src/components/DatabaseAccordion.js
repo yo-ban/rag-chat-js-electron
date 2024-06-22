@@ -79,8 +79,8 @@ const DatabaseAccordion = ({ dbName, dbDescription, language, databases, handleO
 
   const loadDocuments = async (dbName) => {
     try {
-      const docNames = await api.getDocumentNames(dbName);
-      setDocuments(docNames);
+      const docInfo = await api.getDocumentNames(dbName);
+      setDocuments(docInfo);
     } catch (error) {
       console.error(t('errorLoadingDatabase'), error);
     }
@@ -106,10 +106,10 @@ const DatabaseAccordion = ({ dbName, dbDescription, language, databases, handleO
     handleCloseCreateDBDialog();
   };
 
-  const handleDeleteDocument = async (docName) => {
+  const handleDeleteDocument = async (filePath) => {
     try {
-      await api.deleteDocumentFromDatabase(dbName, docName);
-      setDocuments(await api.getDocumentNames(dbName));
+      await api.deleteDocumentFromDatabase(dbName, filePath);
+      loadDocuments(dbName);
     } catch (error) {
       console.error(t('errorDeletingDocument'), error);
     }
@@ -129,12 +129,12 @@ const DatabaseAccordion = ({ dbName, dbDescription, language, databases, handleO
       </StyledAccordionSummary>
       <AccordionDetails sx={{ paddingTop: 0, paddingBottom: 0 }}>
         <StyledDocumentList>
-          {documents.map((docName) => (
-            <StyledListItem key={docName}>
+          {documents.map((doc) => (
+            <StyledListItem key={doc.path}>
               <FileName variant="caption">
-                {docName.split('/').pop()}
+                {doc.name}
               </FileName>
-              <StyledIconButton edge="end" onClick={() => handleDeleteDocument(docName)}>
+              <StyledIconButton edge="end" onClick={() => handleDeleteDocument(doc.path)}>
                 <DeleteIcon sx={{fontSize: '20px'}} />
               </StyledIconButton>
             </StyledListItem>

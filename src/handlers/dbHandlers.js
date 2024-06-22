@@ -132,9 +132,9 @@ ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chu
   });
 });
 
-ipcMain.handle('delete-document-from-database', async (event, dbName, documentIndex) => {
+ipcMain.handle('delete-document-from-database', async (event, dbName, filePath) => {
   return handleIpcMainEvent('delete-document-from-database', async () => {
-    await vectorDBService.deleteDocumentFromDatabase(dbName, documentIndex);
+    await vectorDBService.deleteDocumentFromDatabase(dbName, filePath);
     await reloadActiveDatabase(dbName); // ドキュメント削除後にアクティブなデータベースを再読み込み
   });
 });

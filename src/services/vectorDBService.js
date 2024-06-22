@@ -128,26 +128,29 @@ const vectorDBService = {
       descriptions[dbId] = description;
 
       console.log(`Creating database: ${dbName} (ID: ${dbId})`);
+
       const allChunks = [];
-      const docNameToChunkIds = {};
+      const filePathToChunkIds = {};
+      const filePathToHash = {};
 
       const vectorStore = new FaissIPStore(vectorDBService.getEmbeddingsProvider(), {});
       const dbPath = vectorDBService.getDbPath(dbId);
 
       for (const [index, filePath] of filePaths.entries()) {
-        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
-        const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${filePath}`);
+        const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
         allChunks.push(...chunks);
         if (chunks) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });
+          filePathToHash[filePath] = fileHash;
         } else {
-          console.info("chunk is null, skip process.", path.basename(filePath))
+          console.info("chunk is null, skip process.", filePath);
         }
       }
 
       sendProgress(`Saving Database to ${dbPath}`);
-      await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
+      await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
       await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Database created: ${dbName} (ID: ${dbId})`);
 
@@ -167,20 +170,38 @@ const vectorDBService = {
       console.log(`Adding documents to database ${dbName} (ID: ${dbId})`);
 
       const vectorStore = await vectorDBService.loadDatabase(dbName);
-      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
+      const { filePathToChunkIds, filePathToHash } = await vectorDBService.loadDocMetadata(dbPath);
 
       const allChunks = [];
+      let processedCount = 0;
+      let skippedCount = 0;
 
       for (const [index, filePath] of filePaths.entries()) {
-        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
-        const chunks = await fileProcessor.processFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${filePath}`);
+        const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
+        
+        if (filePathToHash[filePath] === fileHash) {
+          console.log(`File ${filePath} has not changed. Skipping...`);
+          skippedCount++;
+          continue;
+        }
+
+        // 既存のドキュメントの場合、古いチャンクを削除
+        if (filePathToChunkIds[filePath]) {
+          await vectorStore.delete({ ids: filePathToChunkIds[filePath] });
+          delete filePathToChunkIds[filePath];
+        }
+
         allChunks.push(...chunks);
 
         if (chunks) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });  
+          filePathToChunkIds[filePath] = chunkIds;
+          filePathToHash[filePath] = fileHash;
+          processedCount++;
         } else {
-          console.info("chunk is null, skip process.", path.basename(filePath))
+          console.info("chunk is null, skip process.", filePath);
         }
       }
 
@@ -190,9 +211,9 @@ const vectorDBService = {
       }
       
       sendProgress(`Saving Database to ${dbPath}`);
-      await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
+      await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
       await vectorDBService.saveDatabases({ databases, descriptions });
-      console.log(`Documents added to database ${dbName} (ID: ${dbId})`);
+      console.log(`Documents added to database ${dbName} (ID: ${dbId}). Processed: ${processedCount}, Skipped: ${skippedCount}`);
 
     } catch (error) {
       console.error('Error adding documents to database:', error);
@@ -200,6 +221,11 @@ const vectorDBService = {
     }
   },
 
+  loadDocMetadata: async (dbPath) => {
+    const filePathToChunkIds = JSON.parse(await fs.readFile(path.join(dbPath, 'filePathToChunkIds.json'), 'utf-8'));
+    const filePathToHash = JSON.parse(await fs.readFile(path.join(dbPath, 'filePathToHash.json'), 'utf-8'));
+    return { filePathToChunkIds, filePathToHash };
+  },
 
   loadDatabase: async (dbName) => {
     try {
@@ -223,38 +249,42 @@ const vectorDBService = {
         throw new Error(`Database not found: ${dbName}`);
       }
       const dbPath = vectorDBService.getDbPath(dbId);
-      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
-      const docNames = Object.keys(docNameToChunkIds);
-      console.log(`Loaded document names for database ${dbName} (ID: ${dbId}): ${docNames}`);
-      return docNames;
+      const { filePathToChunkIds } = await vectorDBService.loadDocMetadata(dbPath);
+      const docInfo = Object.keys(filePathToChunkIds).map(filePath => ({
+        name: path.basename(filePath),
+        path: filePath
+      }));
+      console.log(`Loaded document info for database ${dbName} (ID: ${dbId}):`, docInfo);
+      return docInfo;
     } catch (error) {
       console.error('Error getting document names:', error);
       return [];
     }
   },
 
-  deleteDocumentFromDatabase: async (dbName, docName) => {
+  deleteDocumentFromDatabase: async (dbName, filePath) => {
     try {
       const dbId = await vectorDBService.getDatabaseIdByName(dbName);
       if (!dbId) {
         throw new Error(`Database not found: ${dbName}`);
       }
       const dbPath = vectorDBService.getDbPath(dbId);
-      console.log(`Deleting document from database ${dbName} (ID: ${dbId}): ${docName}`);
+      console.log(`Deleting document from database ${dbName} (ID: ${dbId}): ${filePath}`);
       const vectorStore = await vectorDBService.loadDatabase(dbName);
-      const docNameToChunkIds = await vectorDBService.loadDocNameToChunkIds(dbPath);
+      const { filePathToChunkIds, filePathToHash } = await vectorDBService.loadDocMetadata(dbPath);
 
-      const chunkIdsToDelete = docNameToChunkIds[docName];
+      const chunkIdsToDelete = filePathToChunkIds[filePath];
       if (!chunkIdsToDelete) {
-        console.error('Document not found:', docName);
+        console.error('Document not found:', filePath);
         return;
       }
 
       await vectorStore.delete({ ids: chunkIdsToDelete });
-      delete docNameToChunkIds[docName];
+      delete filePathToChunkIds[filePath];
+      delete filePathToHash[filePath];
 
-      await vectorDBService.saveDatabase(dbPath, vectorStore, docNameToChunkIds);
-      console.log(`Document deleted from database ${dbName} (ID: ${dbId}): ${docName}`);
+      await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
+      console.log(`Document deleted from database ${dbName} (ID: ${dbId}): ${filePath}`);
     } catch (error) {
       console.error('Error deleting document from database:', error);
       throw error;
@@ -275,22 +305,18 @@ const vectorDBService = {
     return path.join(vectorDBService.dataDir, dbId);
   },
 
-  loadDocNameToChunkIds: async (dbPath) => {
-    const data = await fs.readFile(path.join(dbPath, 'docNameToChunkIds.json'), 'utf-8');
-    return JSON.parse(data);
-  },
-
-  saveDatabase: async (dbPath, vectorStore, docNameToChunkIds) => {
+  saveDatabase: async (dbPath, vectorStore, filePathToChunkIds, filePathToHash) => {
     try {
       await fs.mkdir(dbPath, { recursive: true });
       await vectorStore.save(dbPath);
-      await fs.writeFile(path.join(dbPath, 'docNameToChunkIds.json'), JSON.stringify(docNameToChunkIds));
+      await fs.writeFile(path.join(dbPath, 'filePathToChunkIds.json'), JSON.stringify(filePathToChunkIds));
+      await fs.writeFile(path.join(dbPath, 'filePathToHash.json'), JSON.stringify(filePathToHash));
       console.log(`Database saved at: ${dbPath}`);
     } catch (error) {
       console.error('Error saving database:', error);
       throw error;
     }
-  }
+  },
 };
 
 module.exports = vectorDBService;
