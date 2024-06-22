@@ -443,7 +443,7 @@ const fileProcessor = {
   getAllFiles: async (dirPath, extensions, fileList = [], depth = 0, maxDepth = 3) => {
     if (depth > maxDepth) return fileList;
 
-    const files = await fs.readdir(dirPath); // 非同期でディレクトリの内容を読み取る
+    const files = await fs.readdir(dirPath);
 
     for (const file of files) {
       const filePath = path.join(dirPath, file);
