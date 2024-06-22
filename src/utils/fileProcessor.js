@@ -140,7 +140,7 @@ ${content}`;
   }
 }
 
-const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processTextFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing text file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
@@ -149,7 +149,7 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const title = await generateDocTitle(content.slice(0, 350))
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   let docs = [];
   
@@ -179,21 +179,21 @@ const processTextFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
   return chunks;
 };
 
-const processCodeFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processCodeFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing code file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
   if (!content) return [];
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const ext = path.extname(filePath).toLowerCase();
   const language = languageMapping[ext];
@@ -215,14 +215,14 @@ const processCodeFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for code file: ${filePath}`);
   return chunks;
 };
 
-const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processPdfFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing PDF file: ${filePath}`);
 
   const loader = new PDFLoader(filePath);
@@ -233,7 +233,7 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   const title = await generateDocTitle(datas[0].pageContent.slice(0, 350))
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const docs = datas.map((data) => {
     return new Document({
@@ -251,21 +251,21 @@ const processPdfFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
   return chunks;
 };
 
-const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processDocxFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing DOCX file: ${filePath}`);
   const data = await mammoth.extractRawText({ path: filePath });
 
   if (!data ) return [];
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const title = await generateDocTitle(data.value.slice(0, 350))
 
@@ -282,14 +282,14 @@ const processDocxFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
   return chunks;
 };
 
-const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processJsonFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing JSON file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
@@ -298,7 +298,7 @@ const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const jsonObject = JSON.parse(content);
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const jsonString = JSON.stringify(jsonObject, null, 2);
   const docs = [new Document({
@@ -314,14 +314,14 @@ const processJsonFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
   return chunks;
 };
 
-const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processCsvFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing CSV file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
@@ -333,7 +333,7 @@ const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
   });
 
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const docs = records.map((record, index) => {
     const formattedContent = Object.entries(record).map(([key, value]) => `${key}: ${value}`).join('\n');
@@ -349,7 +349,7 @@ const processCsvFile = async (filePath, docNameToChunkIds, chunkSize, overlapPer
 
     const chunkId = uuidv4();
     doc.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
 
     return doc;
   });
@@ -372,7 +372,7 @@ const extractTextFromPdfBuffer = async (pdfBuffer) => {
   return data.text;
 };
 
-const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processHtmlFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);
   const content = await readFileWithEncoding(filePath);
 
@@ -387,7 +387,7 @@ const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   const title = await generateDocTitle(extractedText.slice(0, 350))
   
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(extractedText),
@@ -402,18 +402,18 @@ const processHtmlFile = async (filePath, docNameToChunkIds, chunkSize, overlapPe
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
   return chunks;
 };
 
-const processExcelFile = async (filePath, docNameToChunkIds, chunkSize, overlapPercentage) => {
+const processExcelFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing Excel file: ${filePath}`);
   const workbook = xlsx.readFile(filePath);
   const docName = path.basename(filePath);
-  docNameToChunkIds[docName] = [];
+  filePathToChunkIds[filePath] = [];
 
   const docs = workbook.SheetNames.map(sheetName => {
     const sheet = workbook.Sheets[sheetName];
@@ -432,7 +432,7 @@ const processExcelFile = async (filePath, docNameToChunkIds, chunkSize, overlapP
   chunks.forEach((chunk) => {
     const chunkId = uuidv4();
     chunk.metadata.chunkId = chunkId;
-    docNameToChunkIds[docName].push(chunkId);
+    filePathToChunkIds[filePath].push(chunkId);
   });
 
   console.log(`Processed ${chunks.length} chunks for file: ${filePath}`);
@@ -461,7 +461,7 @@ const fileProcessor = {
 
     return fileList;
   },
-  processFile: async (filePath, docNameToChunkIds, chunkSize = 512, overlapPercentage = 25) => {
+  processFile: async (filePath, filePathToChunkIds, chunkSize = 512, overlapPercentage = 25) => {
     const ext = path.extname(filePath).toLowerCase();
     const docName = path.basename(filePath);
     const fileContent = await readFileWithEncoding(filePath);
@@ -469,7 +469,7 @@ const fileProcessor = {
     
     let chunks;
     if (languageMapping[ext]) {
-      chunks = await processCodeFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+      chunks = await processCodeFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
     } else {
       switch (ext) {
         case '.yaml':
@@ -477,26 +477,26 @@ const fileProcessor = {
         case '.txt':
         case '.md':
         case '.markdown':
-          chunks = await processTextFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processTextFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.pdf':
-          chunks = await processPdfFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processPdfFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.docx':
-          chunks = await processDocxFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processDocxFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.json':
-          chunks = await processJsonFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processJsonFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.csv':
-          chunks = await processCsvFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processCsvFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.html':
         case '.htm':
-          chunks = await processHtmlFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processHtmlFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         case '.xlsx':
-          chunks = await processExcelFile(filePath, docNameToChunkIds, chunkSize, overlapPercentage);
+          chunks = await processExcelFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
           break;
         default:
           throw new Error(`Unsupported file format: ${ext}`);

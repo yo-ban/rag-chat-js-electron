@@ -59,7 +59,6 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
         },
       ]
     });
-
     if (!canceled && filePaths.length > 0) {
       const allFiles = [];
       const maxDepth = options.folderDepth || 3;
@@ -85,6 +84,7 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
           allFiles.push(filePath);
         }
       }
+
       return allFiles;
     } else {
       return null;
@@ -106,8 +106,11 @@ ipcMain.handle('create-database', async (event, dbName, filePaths, chunkSize, ov
     };
 
     try {
-      await vectorDBService.createDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
+      const result = await vectorDBService.createDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
+      console.log("Database creation result:", result);
+      return result; // 結果オブジェクトをそのまま返す
     } catch (error) {
+      console.error("Error creating database:", error);
       throw error;
     }
   });
@@ -115,7 +118,6 @@ ipcMain.handle('create-database', async (event, dbName, filePaths, chunkSize, ov
 
 ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chunkSize, overlapPercentage, description) => {
   return handleIpcMainEvent('add-documents-to-database', async () => {
-
     console.log("Database Name:", dbName);
     console.log("File Paths in main process:", filePaths);
 
@@ -124,10 +126,19 @@ ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chu
     };
 
     try {
-      await vectorDBService.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
-      await reloadActiveDatabase(dbName); // ドキュメント追加後にアクティブなデータベースを再読み込み
+      const result = await vectorDBService.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
+      console.log("Document addition result:", result);
+      if (result.success) {
+        await reloadActiveDatabase(dbName); // ドキュメント追加後にアクティブなデータベースを再読み込み
+      }
+      return result; // 結果オブジェクトをそのまま返す
     } catch (error) {
-      throw error;
+      console.error("Error adding documents to database:", error);
+      return {
+        success: false,
+        message: `Error adding documents to database: ${error.message}`,
+        log: [`Error: ${error.message}`]
+      };
     }
   });
 });

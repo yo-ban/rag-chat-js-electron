@@ -128,24 +128,29 @@ const vectorDBService = {
       descriptions[dbId] = description;
 
       console.log(`Creating database: ${dbName} (ID: ${dbId})`);
-
-      const allChunks = [];
       const filePathToChunkIds = {};
       const filePathToHash = {};
 
       const vectorStore = new FaissIPStore(vectorDBService.getEmbeddingsProvider(), {});
       const dbPath = vectorDBService.getDbPath(dbId);
 
+      let log = [];
+      let processedCount = 0;
+      let skippedCount = 0;
+
       for (const [index, filePath] of filePaths.entries()) {
-        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${filePath}`);
+        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
         const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
-        allChunks.push(...chunks);
-        if (chunks) {
+        if (chunks && chunks.length > 0) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });
           filePathToHash[filePath] = fileHash;
+          processedCount++;
+          log.push(`Processed: ${filePath} (Chunks: ${chunks.length}, Hash: ${fileHash.slice(0, 8)}...)`);
         } else {
-          console.info("chunk is null, skip process.", filePath);
+          console.info("chunk is null or empty, skip process.", filePath);
+          skippedCount++;
+          log.push(`Skipped: ${filePath} (Reason: No valid chunks produced)`);
         }
       }
 
@@ -153,6 +158,14 @@ const vectorDBService = {
       await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
       await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Database created: ${dbName} (ID: ${dbId})`);
+
+      return {
+        success: true,
+        message: `Database "${dbName}" created successfully.`,
+        processedCount,
+        skippedCount,
+        log
+      };
 
     } catch (error) {
       console.error('Error creating database:', error);
@@ -172,36 +185,40 @@ const vectorDBService = {
       const vectorStore = await vectorDBService.loadDatabase(dbName);
       const { filePathToChunkIds, filePathToHash } = await vectorDBService.loadDocMetadata(dbPath);
 
-      const allChunks = [];
+      let log = [];
       let processedCount = 0;
       let skippedCount = 0;
 
       for (const [index, filePath] of filePaths.entries()) {
-        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${filePath}`);
+        sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
         const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
         
         if (filePathToHash[filePath] === fileHash) {
           console.log(`File ${filePath} has not changed. Skipping...`);
           skippedCount++;
+          log.push(`Skipped: ${filePath} (Reason: File unchanged, Hash: ${fileHash.slice(0, 8)}...)`);
           continue;
         }
 
         // 既存のドキュメントの場合、古いチャンクを削除
         if (filePathToChunkIds[filePath]) {
+          const oldChunkCount = filePathToChunkIds[filePath].length;
           await vectorStore.delete({ ids: filePathToChunkIds[filePath] });
           delete filePathToChunkIds[filePath];
+          log.push(`Deleted old chunks: ${filePath} (Old chunks: ${oldChunkCount})`);
         }
 
-        allChunks.push(...chunks);
-
-        if (chunks) {
+        if (chunks && chunks.length > 0) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });  
           filePathToChunkIds[filePath] = chunkIds;
           filePathToHash[filePath] = fileHash;
           processedCount++;
+          log.push(`Processed: ${filePath} (New chunks: ${chunks.length}, Hash: ${fileHash.slice(0, 8)}...)`);
         } else {
-          console.info("chunk is null, skip process.", filePath);
+          console.info("chunk is null or empty, skip process.", filePath);
+          skippedCount++;
+          log.push(`Skipped: ${filePath} (Reason: No valid chunks produced)`);
         }
       }
 
@@ -214,6 +231,14 @@ const vectorDBService = {
       await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
       await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Documents added to database ${dbName} (ID: ${dbId}). Processed: ${processedCount}, Skipped: ${skippedCount}`);
+
+      return {
+        success: true,
+        message: `Documents added to database "${dbName}" successfully.`,
+        processedCount,
+        skippedCount,
+        log
+      };
 
     } catch (error) {
       console.error('Error adding documents to database:', error);

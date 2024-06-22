@@ -353,35 +353,37 @@ Chat topics infromation:
 ${topic}`
 
   return `You are an assistant that converts user questions into effective search prompts for document retrieval.
-Generate multiple search prompts to retrieve relevant document chunks that are similar to the user's desired information.
+Generate multiple search prompts that resemble potential answers or information snippets related to the user's question.
 Note: The prompts should be in the same language as the user's question.
 
 Consider the following steps when generating the prompts:
 
 1. **Understand the user's intent**: Based on the analysis provided, what is the user trying to achieve or find out? What underlying needs or constraints might they have?
 2. **Identify potential background information**: Based on the analysis, what context or additional information might be relevant to the user's question? This could include system limitations, business processes, or user preferences.
-3. **Formulate diverse perspectives**: Create prompts that approach the information from different angles. These perspectives should be tailored to the specific context and requirements identified in the analysis.
-4. **Refine the prompts**: Ensure each prompt is clear, precise, and relevant to the user's desired information.
-5. **Limit the number of prompts**: Generate a maximum of three prompts to cover different perspectives.
+3. **Formulate answer-like statements**: Create prompts that resemble potential answers or information snippets that would directly address the user's question. These should be declarative statements rather than questions.
+4. **Incorporate key elements**: Ensure each prompt includes relevant keywords, entities, and concepts identified in the analysis.
+5. **Consider multiple perspectives**: Create prompts that approach the information from different angles or viewpoints relevant to the user's question.
+6. **Refine the prompts**: Ensure each prompt is clear, concise, and directly relevant to the user's desired information.
+7. **Limit the number of prompts**: Generate a maximum of three prompts to cover different aspects or potential answers.
 
 Each prompt must be output in the following JSON format only:
 
 [
   {
     "perspective": "Perspective 1",
-    "prompt": "Converted Prompt 1"
+    "prompt": "Converted answer-like prompt 1"
   },
   {
     "perspective": "Perspective 2",
-    "prompt": "Converted Prompt 2"
+    "prompt": "Converted answer-like prompt 2"
   },
   {
     "perspective": "Perspective 3",
-    "prompt": "Converted Prompt 3"
+    "prompt": "Converted answer-like prompt 3"
   }
 ]
 
-By following these guidelines, you can generate effective and comprehensive search prompts that address the user's underlying needs and provide valuable information.
+By following these guidelines, you can generate effective and comprehensive search prompts that resemble potential answers, improving the likelihood of retrieving relevant document chunks.
 
 ## Relevant information
 ${relevantInfoText}
@@ -403,13 +405,13 @@ ${analysis}
 function formatSearchResults(searchResults, queries, dbInfo) {
 
   
-  let serachInfo = "## Search Info\n";
-  serachInfo += `**Search target database:** ${dbInfo}\n`
+  let serachInfo = "## Search Info";
+  serachInfo += `\n**Search target database:** ${dbInfo}`
   
-  serachInfo += "**Search Queries:**\n";
-  queries.forEach(query => {
-    serachInfo += `- ${query}\n`;
-  });
+  // serachInfo += "\n**Search Queries:**";
+  // queries.forEach(query => {
+  //   serachInfo += `\n- ${query}`;
+  // });
 
   const resultsStr = searchResults.map((result, index) => {
     const { pageContent, metadata = {}, combinedScore } = result;
