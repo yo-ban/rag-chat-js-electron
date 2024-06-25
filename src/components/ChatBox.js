@@ -113,6 +113,11 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     };
 
     loadChatHistory();
+
+    // チャットの切り替え時にメッセージ送信をキャンセルする
+    return () => {
+      cancelMessage();
+    };
   }, [chatId, t]);
 
   const performSearch = async (filteredMessages, messageId) => {
