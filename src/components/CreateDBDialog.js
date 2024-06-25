@@ -162,6 +162,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
       toast.error(t('fileSelectionFailedWithMessage', {message: error.message}));
     } finally {
       setIsLoadingFiles(false);
+      handleMenuClose();
     }
   }, [folderDepth, t, excludePattern, selectedFiles]);
 
@@ -186,6 +187,7 @@ const CreateDBDialog = ({ open, onClose, onCreate, language, databases, dbName =
       toast.error(t('folderSelectionFailedWithMessage', {message: error.message}));
     } finally {
       setIsLoadingFiles(false);
+      handleMenuClose();
     }
   }, [folderDepth, t, excludePattern, selectedFiles]);
 
