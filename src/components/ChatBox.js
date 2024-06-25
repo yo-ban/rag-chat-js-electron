@@ -9,6 +9,7 @@ import TypingIndicator from './TypingIndicator';
 import DocResults from './DocResults';
 import api from '../services/api';
 import { toast } from 'react-toastify';
+import { v4 as uuidv4 } from 'uuid';
 
 const ChatBoxContainer = styled(Box)(({ theme }) => ({
   flex: 1,
@@ -43,6 +44,7 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
   const [statusMessage, setStatusMessage] = useState('');  
   const [resendMessage, setResendMessage] = useState(null);
   const messageEndRef = useRef(null);
+  const controllerRef = useRef(null);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -113,20 +115,25 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     loadChatHistory();
   }, [chatId, t]);
 
-  const performSearch = async (filteredMessages) => {
+  const performSearch = async (filteredMessages, messageId) => {
     if (!activeDbId) return [];
 
     try {
 
       console.log("Start retrieval-augmented in ", activeDbId);
-      const { documentSearch, reason, queries, mergedResults } = await api.retrievalAugmented(chatId, filteredMessages, activeDbId, k)
+      const { documentSearch, reason, queries, mergedResults } = await api.retrievalAugmented(chatId, filteredMessages, activeDbId, k, { messageId })
 
       return { documentSearch, reason, queries, mergedResults };
 
     } catch (error) {
-      console.error('Error during similarity search:', error);
-      toast.error(t('errorSearchingDocument'));
-      return { documentSearch: false, reason: "", queries: [], mergedResults: [] };
+      if (controllerRef.current !== messageId) {
+        console.log('Message sending cancelled.');
+        throw new Error(`Message sending cancelled`); 
+      } else {
+        console.error('Error during similarity search:', error);
+        toast.error(t('errorSearchingDocument'));
+        return { documentSearch: false, reason: "", queries: [], mergedResults: [] };
+    }
     }
   };
 
@@ -144,7 +151,14 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
 
   const sendMessage = useCallback(async (input, retry = false) => {
     if (input.trim() === '' && !retry) return;
-
+  
+    if (controllerRef.current) {
+      await api.cancelMessage(controllerRef.current);
+    }
+  
+    const messageId = uuidv4();
+    controllerRef.current = messageId;
+  
     let newMessages;
     if (retry) {
       newMessages = [...messages.slice(0, -1), { role: 'user', content: input }];
@@ -157,42 +171,57 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     setStreamingMessage('');
     setError(null);
     setLastMessage(input);
-
+  
     setIsTyping(true);
     setIsSending(true);
-
+  
     try {
-      const { documentSearch, reason, queries, mergedResults } = await performSearch(newMessages);
+      const { documentSearch, reason, queries, mergedResults } = await performSearch(newMessages, messageId);
       setStatusMessage(t('generateResponse'));
-      
+  
       if (!documentSearch) {
-        await api.sendMessageFollowup(newMessages, chatId, reason);
-        console.log('Message sent (followup):', { newMessages, reason });  
-      } else { 
-        await api.sendMessage(newMessages, chatId, mergedResults, queries);
-        console.log('Message sent:', { newMessages, mergedResults });  
+        await api.sendMessageFollowup(newMessages, chatId, reason, { messageId });
+        console.log('Message sent (followup):', { newMessages, reason });
+      } else {
+        await api.sendMessage(newMessages, chatId, mergedResults, queries, { messageId });
+        console.log('Message sent:', { newMessages, mergedResults });
       }
-
+  
       updateChat({
         id: chatId,
         name: chatTitle,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
-
-      const filteredMessages = messages.filter(message => message.role !== 'doc');
+  
+      const filteredMessages = messages.filter((message) => message.role !== 'doc');
       await updateChatTitle(filteredMessages);
-
+  
       setRetrying(false);
-
     } catch (error) {
-      console.error('Error:', error);
-      setError(t('failedToSendMessage'));
+      if (controllerRef.current !== messageId) {
+        console.log('Message sending cancelled.');
+        toast.error(t('cancelSendMessage'));
+      } else {
+        console.error('Error:', error);
+        setError(t('failedToSendMessage'));
+      }
     }
     setIsTyping(false);
     setIsSending(false);
-    setStatusMessage('');    
+    setStatusMessage('');
+    controllerRef.current = null;
   }, [input, messages, activeDbId, chatId, chatTitle, updateChat, lastMessage, t]);
 
+  const cancelMessage = useCallback(async () => {
+    if (controllerRef.current) {
+      await api.cancelMessage(controllerRef.current);
+      setIsSending(false);
+      setIsTyping(false);
+      setStatusMessage('');
+      controllerRef.current = null;
+    }
+  }, []);
+  
   const handleRetry = useCallback(async () => {
     try {
       await sendMessage(lastMessage, true);
@@ -224,7 +253,7 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
     }
   }, [messages, setMessages, setResendMessage, t]);
 
-    // メッセージの変更を監視
+  // メッセージの変更を監視
   useEffect(() => {
     if (resendMessage !== null) {
       setResendMessage(null);
@@ -276,6 +305,7 @@ function ChatBox({ chatId, chatTitle, k, updateChat, activeDbId }) {
         setInput={setInput}
         isSending={isSending}
         sendMessage={sendMessage}
+        cancelMessage={cancelMessage}
         t={t}
       />
     </ChatBoxContainer>

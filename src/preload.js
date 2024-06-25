@@ -1,8 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-  sendMessage: (messages, chatId, context, queries) => ipcRenderer.invoke('send-message', messages, chatId, context, queries),
-  sendMessageFollowup: (messages, chatId, followupReason) => ipcRenderer.invoke('send-message-followup', messages, chatId, followupReason),
+  sendMessage: (messages, chatId, context, queries, options) => ipcRenderer.invoke('send-message', messages, chatId, context, queries, options),
+  sendMessageFollowup: (messages, chatId, followupReason, options) => ipcRenderer.invoke('send-message-followup', messages, chatId, followupReason, options),
+  cancelMessage: (messageId) => ipcRenderer.invoke('cancel-message', messageId),
   deleteMessages: (chatId, startIndex) => ipcRenderer.invoke('delete-messages', chatId, startIndex),
   generateChatName: (messages, chatId) => ipcRenderer.invoke('generate-chat-name', messages, chatId),
   loadChats: () => ipcRenderer.invoke('load-chats'),
@@ -24,7 +25,7 @@ contextBridge.exposeInMainWorld('electron', {
   getDocumentNames: (dbName) => ipcRenderer.invoke('get-document-names', dbName),
   addDocumentsToDatabase: (dbName, filePaths, chunkSize, overlapPercentage, description) => ipcRenderer.invoke('add-documents-to-database', dbName, filePaths, chunkSize, overlapPercentage, description),
   deleteDocumentFromDatabase: (dbName, filePath) => ipcRenderer.invoke('delete-document-from-database', dbName, filePath),
-  retrievalAugmented: (chatId, chatHistory, activeDbId, k) => ipcRenderer.invoke('retrieval-augmented', chatId, chatHistory, activeDbId, k),
+  retrievalAugmented: (chatId, chatHistory, activeDbId, k, options) => ipcRenderer.invoke('retrieval-augmented', chatId, chatHistory, activeDbId, k, options),
   loadSettings: () => ipcRenderer.invoke('load-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   openLocalFile: (filePath) => ipcRenderer.invoke('open-local-file', filePath),

@@ -137,6 +137,7 @@
   "errorResendMessage": "メッセージの再送信に失敗しました。",
   "failedToLoadChatHistory": "チャット履歴の読み込みに失敗しました。",
   "failedToSendMessage": "メッセージの送信に失敗しました。",
+  "cancelSendMessage": "メッセージの送信をキャンセルしました。",
   "failedToCreateNewChat": "新しいチャットの作成に失敗しました。",
   "failedToUpdateChat": "チャットの更新に失敗しました。",
   "failedToLoadDatabase": "ベクトルDBの読み込みに失敗しました。",

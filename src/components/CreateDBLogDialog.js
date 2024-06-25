@@ -17,10 +17,15 @@ const StyledLogDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
+  padding: theme.spacing(0.5, 1),
   fontSize: '1.2rem',
   fontWeight: 'bold',
 }));
 
+const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
+  padding: theme.spacing(0.5, 1),
+}));
+  
 const StyledMessage = styled(Typography)(({ theme }) => ({
   fontSize: '0.9rem',
   marginBottom: theme.spacing(2),
@@ -47,7 +52,7 @@ const CreateDBLogDialog = ({ open, onClose, log, success, message }) => {
   return (
     <StyledLogDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <StyledDialogTitle>{success ? t('operationSuccessful') : t('operationFailed')}</StyledDialogTitle>
-      <DialogContent>
+      <StyledDialogContent>
         <StyledMessage variant="body1" gutterBottom>{message}</StyledMessage>
         <StyledList>
           {log.map((item, index) => (
@@ -56,7 +61,7 @@ const CreateDBLogDialog = ({ open, onClose, log, success, message }) => {
             </StyledListItem>
           ))}
         </StyledList>
-      </DialogContent>
+      </StyledDialogContent>
       <DialogActions>
         <Button onClick={onClose} color="primary">
           {t('close')}

@@ -137,6 +137,7 @@
   "errorResendMessage": "Failed to resend the message.",
   "failedToLoadChatHistory": "Failed to load chat history.",
   "failedToSendMessage": "Failed to send message.",
+  "cancelSendMessage": "Message sending cancelled.",
   "failedToCreateNewChat": "Failed to create new chat.",
   "failedToUpdateChat": "Failed to update chat.",
   "failedToLoadDatabase": "Failed to load vector DB.",

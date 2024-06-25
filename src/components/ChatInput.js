@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, TextField, IconButton } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import StopIcon from '@mui/icons-material/Stop'; // 追加
 import { styled } from '@mui/material/styles';
 
 const ChatInputContainer = styled(Box)(({ theme }) => ({
@@ -42,7 +43,7 @@ const SendButton = styled(IconButton)(({ theme }) => ({
   alignItems: 'center',
 }));
 
-const ChatInput = ({ input, setInput, isSending, sendMessage, t }) => {
+const ChatInput = ({ input, setInput, isSending, sendMessage, cancelMessage, t }) => {
   return (
     <ChatInputContainer>
       <CustomTextField
@@ -60,13 +61,19 @@ const ChatInput = ({ input, setInput, isSending, sendMessage, t }) => {
         }}
         placeholder={t('placeholder')}
       />
-      <SendButton
-        color="primary"
-        onClick={() => sendMessage(input, false)}
-        disabled={isSending}
-      >
-        <SendIcon />
-      </SendButton>
+      {isSending ? (
+        <SendButton onClick={cancelMessage} disabled={!isSending}>
+          <StopIcon />
+        </SendButton>
+      ) : (
+        <SendButton
+          color="primary"
+          onClick={() => sendMessage(input, false)}
+          disabled={isSending}
+        >
+          <SendIcon />
+        </SendButton>
+      )}
     </ChatInputContainer>
   );
 };

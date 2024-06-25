@@ -132,8 +132,7 @@ ipcMain.handle('open-local-file', async (event, filePath) => shell.openPath(file
 
 ipcMain.handle('open-link', async (event, url) => shell.openExternal(url));
 
-require('./handlers/chatHandlers');
-require('./handlers/dbHandlers');
+require('./handlers/handlers');
 
 process.on('uncaughtException', (error) => {
   logger.error(`Uncaught Exception: ${error.message}`);

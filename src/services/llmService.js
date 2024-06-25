@@ -62,7 +62,7 @@ const llmService = {
     console.log(`Change Vender in llmService: ${llmService.vender}`);
   },
 
-  sendMessage: async (messages, temperature, maxTokens, onData) => {
+  sendMessage: async (messages, temperature, maxTokens, onData, signal) => {
     console.log(llmService.vender);
     if (llmService.vender === 'openai' || !llmService.vender) {
 
@@ -71,13 +71,18 @@ const llmService = {
         baseURL: llmService.baseURL ? llmService.baseURL : undefined
       });
 
-      const stream = await openaiClient.chat.completions.create({
-        model: llmService.model ? llmService.model : 'gpt-4o',
-        messages: messages,
-        stream: true,
-        temperature: temperature, 
-        max_tokens: maxTokens
-      });
+      const stream = await openaiClient.chat.completions.create(
+        {
+          model: llmService.model ? llmService.model : 'gpt-4o',
+          messages: messages,
+          stream: true,
+          temperature: temperature, 
+          max_tokens: maxTokens
+        },
+        {
+          signal: signal
+        }
+      );
       await handleOpenAIStream(stream, onData);
     } else if (llmService.vender === 'azure') {
 
@@ -91,7 +96,8 @@ const llmService = {
         messages, 
         { 
           maxTokens: maxTokens,
-          temperature: temperature
+          temperature: temperature,
+          abortSignal: signal
         }
       );
       await handleAzureOpenAIStream(stream, onData);
@@ -109,7 +115,11 @@ const llmService = {
         temperature: temperature,
         chatHistory: cohereMessages,
         promptTruncation: 'AUTO',
-      });
+      },
+      {
+        abortSignal: signal
+      }
+    );
       await handleCohereStream(stream, onData);
     } else {
       throw new Error(`Unsupported model: ${llmService.vender}`);
