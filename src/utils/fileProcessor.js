@@ -1,6 +1,5 @@
 const path = require('path');
 const fs = require('fs').promises;
-const { getEncoding } = require('js-tiktoken');
 const { RecursiveCharacterTextSplitter } = require("langchain/text_splitter");
 const { Document } = require("@langchain/core/documents");
 const { v4: uuidv4 } = require('uuid');
@@ -15,6 +14,7 @@ const pdfParse = require('pdf-parse');
 const { parseJsonResponse } = require('./ragUtils')
 const llmService = require('../services/llmService')
 const crypto = require('crypto');
+const { countTokens } = require('./tokenizerUtils');
 
 const languageMapping = {
   '.cpp': 'cpp',
@@ -31,12 +31,6 @@ const languageMapping = {
   '.swift': 'swift',
   '.tex': 'latex',
 };
-
-const enc = getEncoding("o200k_base");
-const countTokens = (text) => {  
-  const input_ids = enc.encode(text, disallowedSpecial = []);
-  return input_ids.length;
-}
 
 const cleanAndNormalizeText = (text) => {
   let cleanedText = text.trim();

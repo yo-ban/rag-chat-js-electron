@@ -95,6 +95,10 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
     cohere: {
       apiKey: '',
       modelName: 'c4ai-aya-23'
+    },
+    anthropic: {
+      apiKey: '',
+      modelName: 'claude-3-5-sonnet-20240620'
     }
   });
   const [embeddingsVendors, setEmbeddingsVendors] = useState({
@@ -145,6 +149,10 @@ function Sidebar({ chatList, setActiveChat, createNewChat, loadChats, selectedCh
           cohere: {
             apiKey: '',
             modelName: 'c4ai-aya-23'
+          },
+          anthropic: {
+            apiKey: '',
+            modelName: 'claude-3-5-sonnet-20240620'
           }
         });
         setEmbeddingsVendors(settings.embeddingsVendors || {

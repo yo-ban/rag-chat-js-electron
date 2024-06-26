@@ -1,4 +1,4 @@
-const { countToken } = require('./tokenizer');
+const { getKuromojiTokenizer, ensureKuromojiTokenizer } = require('./tokenizerUtils');
 
 // 検索結果の統合とリランキング処理
 async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
@@ -31,9 +31,11 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
 
   // 2. クエリからキーワードを抽出
   const keywordsSet = new Set();
+  await ensureKuromojiTokenizer();
+  const tokenizer = getKuromojiTokenizer();
 
   for (const query of queries) {
-    const tokens = await countToken(query);
+    const tokens = tokenizer.tokenize(query);
     const parsedQuery = tokens.filter(token => token.pos === "名詞" && (token.pos_detail_1 === "一般" || token.pos_detail_1 === "固有名詞"))
       .map(token => token.surface_form)
       .filter(keyword => keyword.length > 2);

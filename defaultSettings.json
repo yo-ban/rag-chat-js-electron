@@ -18,6 +18,10 @@
     "cohere": {
       "apiKey": "cohere-api-key",
       "modelName": "c4ai-aya-23"
+    },
+    "anthropic": {
+      "apiKey": "anthropic-api-key",
+      "modelName": "claude-3-5-sonnet-20240620"
     }
   },
   "embeddingsVendors": {

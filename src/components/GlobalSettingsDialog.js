@@ -277,7 +277,7 @@ const GlobalSettingsDialog = ({
               />
             </FormControl>
 
-            {vender !== 'cohere' && (
+            {(vender === 'azure' || vender === 'openai') && (
 
             <FormControl fullWidth margin="normal">
               <StyledInputLabel id="base-url-label" shrink>{t('baseUrl')}</StyledInputLabel>
