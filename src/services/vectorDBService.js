@@ -279,7 +279,7 @@ const vectorDBService = {
         name: path.basename(filePath),
         path: filePath
       }));
-      console.log(`Loaded document info for database ${dbName} (ID: ${dbId}):`, docInfo);
+      console.log(`Loaded document info for database ${dbName} (ID: ${dbId})`);
       return docInfo;
     } catch (error) {
       console.error('Error getting document names:', error);
