@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, TextField, IconButton } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import StopIcon from '@mui/icons-material/Stop'; // 追加
+import StopIcon from '@mui/icons-material/Stop';
 import { styled } from '@mui/material/styles';
 
 const ChatInputContainer = styled(Box)(({ theme }) => ({
