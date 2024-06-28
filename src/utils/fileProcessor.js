@@ -13,7 +13,6 @@ const puppeteer = require('puppeteer');
 const pdfParse = require('pdf-parse');
 const { parseJsonResponse } = require('./ragUtils')
 const llmService = require('../services/llmService')
-const crypto = require('crypto');
 const { countTokens } = require('./tokenizerUtils');
 
 const languageMapping = {
@@ -220,16 +219,15 @@ const processPdfFile = async (filePath, filePathToChunkIds, chunkSize, overlapPe
   console.log(`Processing PDF file: ${filePath}`);
 
   const loader = new PDFLoader(filePath);
-  const datas = await loader.load();
+  const texts = await loader.load();
 
-  if (!datas || !datas[0]?.pageContent ) return [];
+  if (!texts || !texts[0]?.pageContent ) return [];
 
-  const title = await generateDocTitle(datas[0].pageContent.slice(0, 350))
+  const title = await generateDocTitle(texts[0].pageContent.slice(0, 350))
 
-  const docName = path.basename(filePath);
   filePathToChunkIds[filePath] = [];
 
-  const docs = datas.map((data) => {
+  const docs = texts.map((data) => {
     return new Document({
       pageContent: cleanAndNormalizeText(data.pageContent),
       metadata: {
@@ -458,8 +456,6 @@ const fileProcessor = {
   processFile: async (filePath, filePathToChunkIds, chunkSize = 512, overlapPercentage = 25) => {
     const ext = path.extname(filePath).toLowerCase();
     const docName = path.basename(filePath);
-    const fileContent = await readFileWithEncoding(filePath);
-    const fileHash = crypto.createHash('md5').update(fileContent).digest('hex');
     
     let chunks;
     if (languageMapping[ext]) {
@@ -497,7 +493,7 @@ const fileProcessor = {
       }
     }
     
-    return { chunks, docName, fileHash };
+    return { chunks, docName };
   }
 };
 

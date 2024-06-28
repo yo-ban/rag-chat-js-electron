@@ -3,6 +3,7 @@ const { OpenAIEmbeddings, AzureOpenAIEmbeddings } = require("@langchain/openai")
 const fs = require('fs').promises;
 const path = require('path');
 const fileProcessor = require('../utils/fileProcessor');
+const crypto = require('crypto');
 
 const vectorDBService = {
   dataDir: null,
@@ -140,7 +141,12 @@ const vectorDBService = {
 
       for (const [index, filePath] of filePaths.entries()) {
         sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
-        const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
+        
+        // ファイルの内容を読み込み、ハッシュを計算
+        const fileContent = await fs.readFile(filePath);
+        const fileHash = crypto.createHash('md5').update(fileContent).digest('hex');
+        
+        const { chunks } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
         if (chunks && chunks.length > 0) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });
@@ -181,25 +187,32 @@ const vectorDBService = {
       }
       const dbPath = vectorDBService.getDbPath(dbId);
       console.log(`Adding documents to database ${dbName} (ID: ${dbId})`);
-
+  
       const vectorStore = await vectorDBService.loadDatabase(dbName);
       const { filePathToChunkIds, filePathToHash } = await vectorDBService.loadDocMetadata(dbPath);
-
+  
       let log = [];
       let processedCount = 0;
       let skippedCount = 0;
-
+  
       for (const [index, filePath] of filePaths.entries()) {
         sendProgress(`Processing file ${index + 1} of ${filePaths.length}: ${path.basename(filePath)}`);
-        const { chunks, fileHash } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
         
+        // ファイルの内容を読み込み、ハッシュを計算
+        const fileContent = await fs.readFile(filePath);
+        const fileHash = crypto.createHash('md5').update(fileContent).digest('hex');
+        
+        // ハッシュ値をチェック
         if (filePathToHash[filePath] === fileHash) {
           console.log(`File ${filePath} has not changed. Skipping...`);
           skippedCount++;
           log.push(`Skipped: ${filePath} (Reason: File unchanged, Hash: ${fileHash.slice(0, 8)}...)`);
           continue;
         }
-
+  
+        // ファイルが変更されている場合のみ処理を続行
+        const { chunks } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
+        
         // 既存のドキュメントの場合、古いチャンクを削除
         if (filePathToChunkIds[filePath]) {
           const oldChunkCount = filePathToChunkIds[filePath].length;
@@ -207,7 +220,7 @@ const vectorDBService = {
           delete filePathToChunkIds[filePath];
           log.push(`Deleted old chunks: ${filePath} (Old chunks: ${oldChunkCount})`);
         }
-
+  
         if (chunks && chunks.length > 0) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
           await vectorStore.addDocuments(chunks, { ids: chunkIds });  
@@ -221,7 +234,7 @@ const vectorDBService = {
           log.push(`Skipped: ${filePath} (Reason: No valid chunks produced)`);
         }
       }
-
+  
       const { databases, descriptions } = await vectorDBService.loadDatabases();      
       if (description) {
         descriptions[dbId] = description;
@@ -231,7 +244,7 @@ const vectorDBService = {
       await vectorDBService.saveDatabase(dbPath, vectorStore, filePathToChunkIds, filePathToHash);
       await vectorDBService.saveDatabases({ databases, descriptions });
       console.log(`Documents added to database ${dbName} (ID: ${dbId}). Processed: ${processedCount}, Skipped: ${skippedCount}`);
-
+  
       return {
         success: true,
         message: `Documents added to database "${dbName}" successfully.`,
@@ -239,7 +252,7 @@ const vectorDBService = {
         skippedCount,
         log
       };
-
+  
     } catch (error) {
       console.error('Error adding documents to database:', error);
       throw error;
