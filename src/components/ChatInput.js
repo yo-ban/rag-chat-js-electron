@@ -43,6 +43,21 @@ const SendButton = styled(IconButton)(({ theme }) => ({
   alignItems: 'center',
 }));
 
+const StopButton = styled(IconButton)(({ theme }) => ({
+  marginLeft: '10px',
+  backgroundColor: theme.palette.error.main,
+  color: theme.palette.background.paper,
+  '&:hover': {
+    backgroundColor: theme.palette.error.dark,
+  },
+  borderRadius: '50%',
+  width: '48px',
+  height: '48px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+}));
+
 const ChatInput = ({ input, setInput, isSending, sendMessage, cancelMessage, t }) => {
   return (
     <ChatInputContainer>
@@ -62,9 +77,9 @@ const ChatInput = ({ input, setInput, isSending, sendMessage, cancelMessage, t }
         placeholder={t('placeholder')}
       />
       {isSending ? (
-        <SendButton onClick={cancelMessage} disabled={!isSending}>
+        <StopButton onClick={cancelMessage} disabled={!isSending}>
           <StopIcon />
-        </SendButton>
+        </StopButton>
       ) : (
         <SendButton
           color="primary"
