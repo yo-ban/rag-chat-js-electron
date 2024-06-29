@@ -39,7 +39,8 @@
       "!logs/*",
       "!test/*",
       "!.env",
-      "!webpack.*.config.js"
+      "!webpack.*.config.js",
+      "!node_modules/aws-sdk/*"
     ],
     "extraFiles": [
       {
@@ -87,9 +88,10 @@
     "@electron/asar": "^3.2.10",
     "@emotion/react": "^11.10.0",
     "@emotion/styled": "^11.10.0",
-    "@langchain/community": "^0.2.1",
-    "@langchain/core": "^0.2.0",
+    "@langchain/community": "^0.2.15",
+    "@langchain/core": "^0.2.10",
     "@langchain/openai": "^0.0.33",
+    "@langchain/textsplitters": "^0.0.3",
     "@mui/icons-material": "^5.15.18",
     "@mui/material": "^5.11.0",
     "chardet": "^2.0.0",
@@ -105,7 +107,6 @@
     "iconv-lite": "^0.6.3",
     "katex": "^0.16.10",
     "kuromoji": "^0.1.2",
-    "langchain": "^0.2.0",
     "mammoth": "^1.7.2",
     "openai": "^4.47.1",
     "pdf-parse": "^1.1.1",
