@@ -1,6 +1,6 @@
 const winston = require('winston');
 const path = require('path');
-const { baseDir } = require('./constants/constants')
+const { baseDir } = require('../constants/constants')
 
 const logger = winston.createLogger({
   level: 'info',
