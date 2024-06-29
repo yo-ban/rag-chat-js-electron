@@ -1,8 +1,6 @@
 const winston = require('winston');
 const path = require('path');
-const { app } = require('electron');
-
-const baseDir = process.env.PORTABLE_EXECUTABLE_DIR || app.getAppPath();
+const { baseDir } = require('./constants/constants')
 
 const logger = winston.createLogger({
   level: 'info',

@@ -2,19 +2,20 @@ const { ipcMain, dialog } = require('electron');
 const vectorDBService = require('../services/vectorDBService');
 const chatService = require('../services/chatService');
 const llmService = require('../services/llmService');
-const { v4: uuidv4 } = require('uuid');
 const { handleIpcMainEvent } = require('../utils/ipcUtils');
 const fileProcessor = require('../utils/fileProcessor');
 const fs = require('fs').promises;
 const { 
+  analysisQuery, 
+  determine,
+  transformQuery,
+  similaritySearch 
+} = require('../utils/ragUtils');
+const { 
   generateQAPrompt, 
   generateFollowUpPrompt, 
-  mergeAndRerankSearchResults, 
-  parseJsonResponse, 
-  generateAnalysisPrompt, 
-  generateTransformationPrompt, 
-  determineInformationSufficientPrompt 
-} = require('../utils/ragUtils');
+} = require('../utils/promptGenerators');
+const { parseJsonResponse } = require('../utils/jsonUtils');
 
 const activeStreams = new Map();
 const activeDatabases = {}; // DB IDとDBインスタンスのマップ
@@ -29,9 +30,10 @@ async function loadDatabaseByName(dbName) {
     return existingDbId;
   }
 
-  console.log(`Loading the database "${dbName}"...`);
 
-  const dbId = uuidv4();
+  const dbId = await vectorDBService.getDatabaseIdByName(dbName);
+  console.log(`Loading the database "${dbId}: ${dbName}"...`);
+
   activeDatabases[dbId] = {
     db: await vectorDBService.loadDatabase(dbName),
     name: dbName,
@@ -179,75 +181,16 @@ ipcMain.handle('delete-database', async (event, dbName) => {
 
     await fs.rm(dbPath, { recursive: true, force: true });
 
+    // activeDatabasesから削除
+    delete activeDatabases[dbId];
+    console.log(`Removed database ${dbName} from activeDatabases`);
+
     const { databases, descriptions } = await vectorDBService.loadDatabases();
     delete databases[dbId];
     delete descriptions[dbId];
     await vectorDBService.saveDatabases({ databases, descriptions });
   });
 });
-
-async function analysisQuery(chatHistory, chatData, dbDescription, signal) {
-
-  // クエリ分析プロンプトを生成
-  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
-  const prompt = generateAnalysisPrompt(filteredChatHistory, chatData.topic, dbDescription);
-
-  // クエリ分析実行
-  let response = "";
-  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 1024, (content) => {
-    response += content;
-  }, signal);
-
-  return response.trim();
-}
-
-async function determine(chatHistory, chatData, dbDescription, analysis, signal){
-
-  // 検索判断プロンプトを生成
-  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
-  const prompt = determineInformationSufficientPrompt(filteredChatHistory, chatData.topic, dbDescription, analysis);
-
-  // 判断を実行
-  let response = "";
-  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.3, 500, (content) => {
-    response += content;
-  }, signal);
-
-  // レスポンスをパース
-  const determineResult = parseJsonResponse(response.trim());
-  return determineResult;
-}
-
-async function transformQuery(chatHistory, analysis, chatData, dbDescription, signal) {
-
-  // クエリ変換プロンプトを生成
-  const filteredChatHistory = chatHistory.filter(message => message.role !== 'doc');
-  const prompt = generateTransformationPrompt(filteredChatHistory, chatData.topic, analysis, dbDescription);
-
-  // クエリ変換実行
-  let response = "";
-  await llmService.sendMessage([{ role: 'user', content: prompt }], 0.7, 500, (content) => {
-    response += content;
-  }, signal);
-
-  // レスポンスをパース
-  const transformedQueries = parseJsonResponse(response.trim());
-  return transformedQueries;
-}
-
-async function similaritySearch(dbId, queries, k = 10) {
-  const db = activeDatabases[dbId].db;
-  if (!db) throw new Error(`Database not found: ${dbId}`);
-
-  // 各クエリに対して検索を実行
-  const searchResults = await Promise.all(
-    queries.map(query => vectorDBService.similaritySearch(db, query, k + 5))
-  );
-
-  // 簡易リランク、ソート
-  const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
-  return mergedResults;
-}
 
 ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeDbId, k, options = {}) => {
   const messageId = options.messageId;
@@ -286,7 +229,10 @@ ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeD
     console.log(`Transformed queries:\n${JSON.stringify(transformedQueries)}`);
 
     event.sender.send('message-progress', 'searchingInDatabase');
-    const mergedResults = await similaritySearch(activeDbId, queries, k);
+
+    const db = activeDatabases[activeDbId].db;
+    if (!db) throw new Error(`Database not found: ${activeDbId}`);
+    const mergedResults = await similaritySearch(db, queries, k);
 
     activeStreams.delete(messageId);
 

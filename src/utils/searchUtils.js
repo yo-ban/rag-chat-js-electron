@@ -105,5 +105,4 @@ const keywordScore = (content, keywords) => {
   return score / keywords.length; // キーワード一致度を計算
 };
 
-
 module.exports = { mergeAndRerankSearchResults };

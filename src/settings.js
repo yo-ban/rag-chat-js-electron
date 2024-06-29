@@ -1,8 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
-const { app } = require('electron');
+const { baseDir } = require('./constants/constants')
 
-const baseDir = process.env.PORTABLE_EXECUTABLE_DIR || app.getAppPath();
 const settingsFilePath = path.join(baseDir, 'settings.json');
 const defaultSettingsFilePath = 'defaultSettings.json';
 

@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const fileProcessor = require('../utils/fileProcessor');
 const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
 
 const vectorDBService = {
   dataDir: null,
@@ -94,7 +95,7 @@ const vectorDBService = {
   },
 
   generateDatabaseId: () => {
-    return Date.now().toString();
+    return `db-${uuidv4()}`;
   },
 
   getDatabaseIdByName: async (dbName) => {
