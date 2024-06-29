@@ -210,16 +210,17 @@ const vectorDBService = {
           continue;
         }
   
-        // ファイルが変更されている場合のみ処理を続行
-        const { chunks } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
-        
         // 既存のドキュメントの場合、古いチャンクを削除
         if (filePathToChunkIds[filePath]) {
+          console.log(`File ${filePath} has changed. Deleting old chunks...`);
           const oldChunkCount = filePathToChunkIds[filePath].length;
           await vectorStore.delete({ ids: filePathToChunkIds[filePath] });
           delete filePathToChunkIds[filePath];
           log.push(`Deleted old chunks: ${filePath} (Old chunks: ${oldChunkCount})`);
         }
+
+        // ファイルが変更されている場合のみ処理を続行
+        const { chunks } = await fileProcessor.processFile(filePath, filePathToChunkIds, chunkSize, overlapPercentage);
   
         if (chunks && chunks.length > 0) {
           const chunkIds = chunks.map(chunk => chunk.metadata.chunkId);
