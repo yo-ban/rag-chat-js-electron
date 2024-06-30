@@ -138,7 +138,7 @@ ipcMain.handle('add-documents-to-database', async (event, dbName, filePaths, chu
 
     try {
       const result = await vectorDBService.addDocumentsToDatabase(dbName, filePaths, chunkSize, overlapPercentage, sendProgress, description);
-      console.log("Document addition result:", result);
+      console.log("Document addition result:", JSON.stringify(result));
       if (result.success) {
         await reloadActiveDatabase(dbName); // ドキュメント追加後にアクティブなデータベースを再読み込み
       }

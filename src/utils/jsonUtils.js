@@ -52,14 +52,14 @@ function fixJSON(jsonString) {
 }
 
 async function fixJSONWithLLM(jsonString) {
-  const prompt = `以下の文字列は不正な形式の JSON です。これを有効な JSON に修正してください。修正した JSON のみを出力し、説明は不要です。
+  const prompt =  `The following string is an invalid JSON. Please correct it to make it a valid JSON. Output only the corrected JSON without any explanation.
 
-不正な JSON:
+Invalid JSON:
 ${jsonString}
 
-修正後の JSON:`;
+Corrected JSON:`;
 
-  const systemMessage = "あなたは JSON の専門家です。与えられた不正な形式の JSON を修正し、有効な JSON に変換してください。";
+  const systemMessage = "You are a JSON expert. Please correct the given invalid JSON and convert it into a valid JSON format.";
   const messagesToSend = [
     { role: 'system', content: systemMessage },
     { role: 'user', content: prompt }

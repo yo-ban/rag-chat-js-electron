@@ -11,53 +11,91 @@ const RETRY_DELAY = 1000;
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const isSheetLikelyTable = (sheetData) => {
-  if (sheetData.length < 2) return false;
+const findFirstNonEmptyRow = (sheetData) => {
+  for (let i = 0; i < sheetData.length; i++) {
+    if (sheetData[i].some(cell => cell !== '')) {
+      return i;
+    }
+  }
+  return -1; // すべての行が空の場合
+};
 
-  const sampleRows = sheetData.slice(0, Math.min(10, sheetData.length));
+const isSheetLikelyTable = (sheetData) => {
+  const firstNonEmptyRowIndex = findFirstNonEmptyRow(sheetData);
+  if (firstNonEmptyRowIndex === -1 || sheetData.length - firstNonEmptyRowIndex < 2) return false;
+
+  const sampleRows = sheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + 10, sheetData.length));
   const nonEmptyCellCounts = sampleRows.map(row => row.filter(cell => cell !== '').length);
   const consistentRows = nonEmptyCellCounts.filter(count => count > sampleRows[0].length * 0.3);
   return consistentRows.length > sampleRows.length * 0.5;
 };
 
+const detectTableEndRow = (sheetData, dataStartRowIndex) => {
+  const EMPTY_ROW_THRESHOLD = 3;
+  let emptyRowCount = 0;
+  
+  for (let i = dataStartRowIndex; i < sheetData.length; i++) {
+    const row = sheetData[i];
+    if (row.every(cell => cell === '')) {
+      emptyRowCount++;
+      if (emptyRowCount >= EMPTY_ROW_THRESHOLD) {
+        return i - EMPTY_ROW_THRESHOLD + 1;
+      }
+    } else {
+      emptyRowCount = 0;
+    }
+  }
+  
+  return sheetData.length;
+};
+
 const analyzeSheetStructure = async (sheetData, retryCount = 0) => {
   try {
-    const sampleRows = sheetData.slice(0, Math.min(10, sheetData.length));
+    const firstNonEmptyRowIndex = findFirstNonEmptyRow(sheetData);
+    if (firstNonEmptyRowIndex === -1) {
+      return { isTable: false };
+    }
+
+    const sampleRows = sheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + 10, sheetData.length));
+    // console.log("Sample Rows:\n", JSON.stringify(sampleRows));
     const sampleContent = sampleRows.map((row, index) => 
-      `Row ${index}: ${row.join('\t')}`
+      `Row ${firstNonEmptyRowIndex + index}: ${row.map((cell, colIndex) => `${String.fromCharCode(65 + colIndex)}:${cell}`).join('\t')}`
     ).join('\n');
 
-    console.log(sampleContent);
+    // console.log(sampleContent);
 
-    const prompt = `以下はExcelシートの最初の10行（または全行）のサンプルデータです。各行には行番号が付いています。このデータに基づいて、シートの構造を分析してください。
+    const prompt = `The following is a sample of up to 10 rows from an Excel sheet, starting from the first non-empty row. Each row is prefixed with its actual row number in the sheet. Based on this data, please analyze the structure of the sheet.
+Sheets may contain a mixture of tabular and non-tabular content.
 
-サンプルデータ:
+Sample data:
 ${sampleContent}
 
-以下の点について分析し、JSON形式で回答してください：
-1. このシートは主に表形式のデータで構成されているか
-2. 表形式の場合、最も適切なヘッダー行の位置（行番号）
-3. データ行の開始位置（行番号）
-4. 表の前に説明文やタイトルなどが存在するか
-5. ヘッダーが複数行にわたる場合、その範囲（開始行と終了行の行番号）
+Please analyze the following points and respond in JSON format:
+1. Is this sheet primarily composed of tabular data?
+2. If tabular, what is the most appropriate row number for the header?
+3. What row number does the actual data start from?
+4. Is there any descriptive text or title before the table?
+5. If the header spans multiple rows, what is the range (start and end row numbers)?
+6. What column is a reasonable end of the table? (Judgments are made based on the number and consistency of data relative to the header, the number of empty columns, etc. and provide column letters such as 'A', 'B', 'C', etc.)
 
-回答の形式：
+Response format:
 {
   "isTable": boolean,
   "bestHeaderRowIndex": number | null,
   "dataStartRowIndex": number | null,
   "hasPreTableContent": boolean,
-  "multiRowHeaderRange": { "start": number | null, "end": number | null }
+  "multiRowHeaderRange": { "start": number | null, "end": number | null },
+  "endColumnLetter": string | null
 }
 
-注意：
-- データが表形式でない場合、bestHeaderRowIndexとdataStartRowIndexはnullとしてください。
-- ヘッダーが1行の場合、multiRowHeaderRangeのstartとendは同じ値になります。
-- ヘッダーが存在しない場合、multiRowHeaderRangeのstartとendはnullとしてください。
-- すべての行番号は、データの先頭を0とする数値で回答してください。
-- 指定されたJSON形式のみで回答し、他の情報を記載しないでください。`;
+Notes:
+- If the data is not tabular, set bestHeaderRowIndex, dataStartRowIndex, and endColumnLetter to null.
+- If the header is a single row, multiRowHeaderRange.start and end should be the same.
+- If there is no header, set multiRowHeaderRange.start and end to null.
+- All row numbers should be the actual row numbers as shown in the sample data.
+- Please respond only with the specified JSON format, without any additional information.`;
 
-    const systemMessage = "あなたはExcelデータの構造を分析する専門家です。与えられたデータを客観的に分析し、正確な情報を提供してください。行番号を参照して、正確な位置情報を回答してください。";
+    const systemMessage = "You are an expert in analyzing Excel data structures. Please objectively analyze the given data and provide accurate information. Refer to the row numbers and column letters to give precise positional information.";
     const messagesToSend = [
       { role: 'system', content: systemMessage },
       { role: 'user', content: prompt }
@@ -68,15 +106,29 @@ ${sampleContent}
       assistantMessageContent += messageContent;
     });
 
-    console.log("LLM Analysis Result:", assistantMessageContent);
-
     const result = parseJsonResponse(assistantMessageContent);
     
     // 結果の検証
     if (typeof result.isTable !== 'boolean' ||
-        (result.isTable && (typeof result.bestHeaderRowIndex !== 'number' || typeof result.dataStartRowIndex !== 'number'))) {
+        (result.isTable && (
+          typeof result.bestHeaderRowIndex !== 'number' ||
+          typeof result.dataStartRowIndex !== 'number' ||
+          typeof result.endColumnLetter !== 'string' ||
+          !/^[A-Z]$/.test(result.endColumnLetter)
+        ))) {
       throw new Error('Invalid LLM response structure');
     }
+
+    console.log("LLM Analysis Result:", assistantMessageContent);
+
+    if (result.isTable) {
+      // 終了列の文字を数値インデックスに変換
+      result.endColumnIndex = result.endColumnLetter.charCodeAt(0) - 65 + 1;
+      result.endRowIndex = detectTableEndRow(sheetData, result.dataStartRowIndex);
+      result.firstNonEmptyRowIndex = firstNonEmptyRowIndex;
+    }
+
+    console.log("AnalyzeSheetStructure Result:", JSON.stringify(result));
 
     return result;
   } catch (error) {
@@ -103,10 +155,10 @@ const processExcelSheet = async (sheetName, sheetData, metadata) => {
     sheetStructure = { isTable: false };
   }
 
-  console.log(`Sheet "${sheetName}" structure:`, sheetStructure);
+  console.log(`Sheet "${sheetName}" structure:`, JSON.stringify(sheetStructure));
 
   if (sheetStructure && sheetStructure.isTable) {
-    const { bestHeaderRowIndex, dataStartRowIndex, hasPreTableContent, multiRowHeaderRange } = sheetStructure;
+    const { bestHeaderRowIndex, dataStartRowIndex, endRowIndex, endColumnIndex, hasPreTableContent, multiRowHeaderRange } = sheetStructure;
 
     // 表の前のコンテンツを処理
     if (hasPreTableContent && multiRowHeaderRange.start > 0) {
@@ -124,9 +176,9 @@ const processExcelSheet = async (sheetName, sheetData, metadata) => {
     // 最適なヘッダー行を選択
     const headerRow = sheetData[bestHeaderRowIndex];
 
-    // 表データの処理
-    sheetData.slice(dataStartRowIndex).forEach((row, rowIndex) => {
-      const content = row.map((cell, cellIndex) => {
+    // 表データの処理（終了行と列を考慮）
+    sheetData.slice(dataStartRowIndex, endRowIndex).forEach((row, rowIndex) => {
+      const content = row.slice(0, endColumnIndex).map((cell, cellIndex) => {
         const header = headerRow[cellIndex] || `Column ${cellIndex + 1}`;
         return `${header}: ${cell}`;
       }).join('\n');
