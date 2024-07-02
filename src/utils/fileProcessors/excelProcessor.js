@@ -11,6 +11,25 @@ const RETRY_DELAY = 1000;
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// マージされたセルを展開
+const expandMergedCells = (sheetData, merges) => {
+  const expandedData = sheetData.map(row => [...row]);
+  
+  merges.forEach(merge => {
+    const { s: { r: startRow, c: startCol }, e: { r: endRow, c: endCol } } = merge;
+    const value = expandedData[startRow][startCol];
+    
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        expandedData[r][c] = value;
+      }
+    }
+  });
+  
+  return expandedData;
+};
+
+// 最初の非空行を見つける
 const findFirstNonEmptyRow = (sheetData) => {
   for (let i = 0; i < sheetData.length; i++) {
     if (sheetData[i].some(cell => cell !== '')) {
@@ -28,6 +47,79 @@ const isSheetLikelyTable = (sheetData) => {
   const nonEmptyCellCounts = sampleRows.map(row => row.filter(cell => cell !== '').length);
   const consistentRows = nonEmptyCellCounts.filter(count => count > sampleRows[0].length * 0.3);
   return consistentRows.length > sampleRows.length * 0.5;
+};
+
+const detectTableEndColumn = (expandedSheetData, startRow, endRow) => {
+  const columnCounts = [];
+  const totalRows = endRow - startRow + 1;
+  const minThreshold = Math.max(3, Math.ceil(totalRows * 0.1)); // 最小3行または10%以上
+
+  for (let i = startRow; i <= endRow; i++) {
+    let lastNonEmptyColumn = -1;
+    for (let j = expandedSheetData[i].length - 1; j >= 0; j--) {
+      if (expandedSheetData[i][j] !== '') {
+        lastNonEmptyColumn = j;
+        break;
+      }
+    }
+    if (lastNonEmptyColumn !== -1) {
+      for (let k = 0; k <= lastNonEmptyColumn; k++) {
+        columnCounts[k] = (columnCounts[k] || 0) + 1;
+      }
+    }
+  }
+
+  // 列の使用頻度に基づいて終了列を決定
+  let endColumn = 0;
+  for (let i = columnCounts.length - 1; i >= 0; i--) {
+    if ((columnCounts[i] || 0) >= minThreshold) {
+      endColumn = i;
+      break;
+    }
+  }
+
+  // ヘッダー行の考慮
+  const headerRow = expandedSheetData[startRow];
+  const headerEndColumn = headerRow.reduce((max, cell, index) => 
+    cell !== '' ? index : max, 0);
+  
+  return Math.max(endColumn, headerEndColumn);
+};
+
+const validateEndColumn = (expandedSheetData, startRow, endRow, llmEndColumnIndex, bestHeaderRowIndex) => {
+  const totalRows = endRow - startRow + 1;
+  const minThreshold = Math.max(3, Math.ceil(totalRows * 0.1)); // 最小3行または10%以上
+  const columnCounts = [];
+
+  console.log("Fill Rate Threshold: ", minThreshold);
+
+  // データの充足率を計算
+  for (let i = startRow; i <= endRow; i++) {
+    for (let j = 0; j <= llmEndColumnIndex; j++) {
+      if (expandedSheetData[i][j] !== '') {
+        columnCounts[j] = (columnCounts[j] || 0) + 1;
+      }
+    }
+  }
+
+  const isFillRateAboveThreshold = (columnIndex) => (columnCounts[columnIndex] || 0) >= minThreshold;
+
+  // LLMが判定した終了列から左に向かってチェック
+  for (let i = llmEndColumnIndex; i >= 0; i--) {
+    const hasValidHeader = expandedSheetData[bestHeaderRowIndex][i] !== '';
+    const leftColumnHasValidHeader = i > 0 && expandedSheetData[bestHeaderRowIndex][i - 1] !== '';
+
+    if (isFillRateAboveThreshold(i)) {
+      // 現在の列の充足率が閾値以上なら採用
+      return i;
+    } else if (hasValidHeader && leftColumnHasValidHeader) { //  && isFillRateAboveThreshold(i - 1) 、かつ充足率が閾値を超えている場合
+      // 現在の列のヘッダーが有効で、左隣の列も有効なヘッダーがあるなら採用
+      return i;
+    }
+  }
+
+  // 妥当な列が見つからない場合、より広範囲で再検索
+  return detectTableEndColumn(expandedSheetData, startRow, endRow);
 };
 
 const detectTableEndRow = (sheetData, dataStartRowIndex) => {
@@ -49,20 +141,80 @@ const detectTableEndRow = (sheetData, dataStartRowIndex) => {
   return sheetData.length;
 };
 
-const analyzeSheetStructure = async (sheetData, retryCount = 0) => {
+// 表以外のデータ処理
+const processNonTableContent = (sheetData, tableRange, multiRowHeaderRange) => {
+  const { startRow, endRow, startCol, endCol } = tableRange;
+  const nonTableContent = [];
+
+  // テーブルの前のコンテンツ
+  if (multiRowHeaderRange && multiRowHeaderRange.start > 0) {
+    const beforeTable = sheetData.slice(0, multiRowHeaderRange.start).map(row => row.join(' ')).join('\n');
+    if (beforeTable.trim() !== '') {
+      nonTableContent.push({ content: beforeTable, position: 'before' });
+    }
+  } else if (startRow > 0) {
+    const beforeTable = sheetData.slice(0, startRow).map(row => row.join(' ')).join('\n');
+    if (beforeTable.trim() !== '') {
+      nonTableContent.push({ content: beforeTable, position: 'before' });
+    }
+  }
+
+  // テーブルの後のコンテンツ
+  if (endRow < sheetData.length - 1) {
+    const afterTable = sheetData.slice(endRow + 1).map(row => row.join(' ')).join('\n');
+    if (afterTable.trim() !== '') {
+      nonTableContent.push({ content: afterTable, position: 'after' });
+    }
+  }
+
+  // テーブルの左側のコンテンツ
+  if (startCol > 0) {
+    const leftOfTable = sheetData.slice(startRow, endRow + 1).map(row => row.slice(0, startCol).join(' ')).join('\n');
+    if (leftOfTable.trim() !== '') {
+      nonTableContent.push({ content: leftOfTable, position: 'left' });
+    }
+  }
+
+  // テーブルの右側のコンテンツ
+  if (endCol < sheetData[0].length - 1) {
+    const rightOfTable = sheetData.slice(startRow, endRow + 1).map(row => row.slice(endCol + 1).join(' ')).join('\n');
+    if (rightOfTable.trim() !== '') {
+      nonTableContent.push({ content: rightOfTable, position: 'right' });
+    }
+  }
+
+  return nonTableContent;
+};
+
+const getColumnIndex = (columnName) => {
+  let index = 0;
+  for (let i = 0; i < columnName.length; i++) {
+    index = index * 26 + columnName.charCodeAt(i) - 64;
+  }
+  return index - 1; // 0-based index
+};
+
+const getColumnName = (index) => {
+  let columnName = '';
+  let num = index;
+  while (num >= 0) {
+    columnName = String.fromCharCode(65 + (num % 26)) + columnName;
+    num = Math.floor(num / 26) - 1;
+  }
+  return columnName;
+};
+
+const analyzeSheetStructure = async (expandedSheetData, retryCount = 0) => {
   try {
-    const firstNonEmptyRowIndex = findFirstNonEmptyRow(sheetData);
+    const firstNonEmptyRowIndex = findFirstNonEmptyRow(expandedSheetData);
     if (firstNonEmptyRowIndex === -1) {
       return { isTable: false };
     }
 
-    const sampleRows = sheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + 10, sheetData.length));
-    // console.log("Sample Rows:\n", JSON.stringify(sampleRows));
+    const sampleRows = expandedSheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + 10, expandedSheetData.length));
     const sampleContent = sampleRows.map((row, index) => 
-      `Row ${firstNonEmptyRowIndex + index}: ${row.map((cell, colIndex) => `${String.fromCharCode(65 + colIndex)}:${cell}`).join('\t')}`
+      `Row ${firstNonEmptyRowIndex + index}: ${row.map((cell, colIndex) => `${getColumnName(colIndex)}:${cell}`).join('\t')}`
     ).join('\n');
-
-    // console.log(sampleContent);
 
     const prompt = `The following is a sample of up to 10 rows from an Excel sheet, starting from the first non-empty row. Each row is prefixed with its actual row number in the sheet. Based on this data, please analyze the structure of the sheet.
 Sheets may contain a mixture of tabular and non-tabular content.
@@ -72,24 +224,31 @@ ${sampleContent}
 
 Please analyze the following points and respond in JSON format:
 1. Is this sheet primarily composed of tabular data?
-2. If tabular, what is the most appropriate row number for the header?
+2. What is the most appropriate row number for the header?
 3. What row number does the actual data start from?
-4. Is there any descriptive text or title before the table?
-5. If the header spans multiple rows, what is the range (start and end row numbers)?
-6. What column is a reasonable end of the table? (Judgments are made based on the number and consistency of data relative to the header, the number of empty columns, etc. and provide column letters such as 'A', 'B', 'C', etc.)
+4. If the header spans multiple rows, what is the range (start and end row numbers)?
+5. What column letter does the table start from? (Consider the leftmost column with consistent data or headers)
+6. What column letter is a reasonable end of the table?
+
+For determining the start and end columns:
+- Look for consistent data patterns or header structures.
+- Consider columns with a high percentage of non-empty cells.
+- The start column should be the leftmost column that is part of the table structure.
+- The end column should be the rightmost column that contains relevant data, ignoring sporadic or inconsistent data in far-right columns.
+- Pay attention to changes in data types or formatting that might indicate the table's boundaries.
 
 Response format:
 {
   "isTable": boolean,
   "bestHeaderRowIndex": number | null,
   "dataStartRowIndex": number | null,
-  "hasPreTableContent": boolean,
   "multiRowHeaderRange": { "start": number | null, "end": number | null },
+  "startColumnLetter": string | null,
   "endColumnLetter": string | null
 }
 
 Notes:
-- If the data is not tabular, set bestHeaderRowIndex, dataStartRowIndex, and endColumnLetter to null.
+- If the data is not tabular, set bestHeaderRowIndex, dataStartRowIndex, startColumnLetter, and endColumnLetter to null.
 - If the header is a single row, multiRowHeaderRange.start and end should be the same.
 - If there is no header, set multiRowHeaderRange.start and end to null.
 - All row numbers should be the actual row numbers as shown in the sample data.
@@ -102,19 +261,21 @@ Notes:
     ];
 
     let assistantMessageContent = '';
-    await llmService.sendMessage(messagesToSend, 0.7, 1024, (messageContent) => {
+    await llmService.sendMessage(messagesToSend, 0.3, 1024, (messageContent) => {
       assistantMessageContent += messageContent;
     });
 
     const result = parseJsonResponse(assistantMessageContent);
     
-    // 結果の検証
+    // 結果の検証と後処理
     if (typeof result.isTable !== 'boolean' ||
         (result.isTable && (
           typeof result.bestHeaderRowIndex !== 'number' ||
           typeof result.dataStartRowIndex !== 'number' ||
+          typeof result.startColumnLetter !== 'string' ||
           typeof result.endColumnLetter !== 'string' ||
-          !/^[A-Z]$/.test(result.endColumnLetter)
+          !/^[A-Z]+$/.test(result.startColumnLetter) ||
+          !/^[A-Z]+$/.test(result.endColumnLetter)
         ))) {
       throw new Error('Invalid LLM response structure');
     }
@@ -122,12 +283,26 @@ Notes:
     console.log("LLM Analysis Result:", assistantMessageContent);
 
     if (result.isTable) {
-      // 終了列の文字を数値インデックスに変換
-      result.endColumnIndex = result.endColumnLetter.charCodeAt(0) - 65 + 1;
-      result.endRowIndex = detectTableEndRow(sheetData, result.dataStartRowIndex);
+      result.endRowIndex = Math.min(detectTableEndRow(expandedSheetData, result.dataStartRowIndex), expandedSheetData.length - 1);
       result.firstNonEmptyRowIndex = firstNonEmptyRowIndex;
-    }
 
+      // 終了列の文字を数値インデックスに変換
+      result.startColumnIndex = getColumnIndex(result.startColumnLetter);
+      
+      // LLMが判定した終了列の妥当性をチェック
+      const llmEndColumnIndex = getColumnIndex(result.endColumnLetter);
+      const validatedEndColumnIndex = validateEndColumn(
+        expandedSheetData,
+        result.dataStartRowIndex,
+        result.endRowIndex,
+        llmEndColumnIndex,
+        result.bestHeaderRowIndex
+      );
+
+      result.endColumnIndex = validatedEndColumnIndex;
+      result.endColumnLetter = getColumnName(validatedEndColumnIndex);
+    }
+    
     console.log("AnalyzeSheetStructure Result:", JSON.stringify(result));
 
     return result;
@@ -136,7 +311,7 @@ Notes:
     if (retryCount < MAX_RETRIES) {
       console.log(`Retrying analysis in ${RETRY_DELAY}ms...`);
       await sleep(RETRY_DELAY);
-      return analyzeSheetStructure(sheetData, retryCount + 1);
+      return analyzeSheetStructure(expandedSheetData, retryCount + 1);
     } else {
       console.warn('Max retries reached. Falling back to non-table processing.');
       return { isTable: false };
@@ -144,13 +319,18 @@ Notes:
   }
 };
 
-const processExcelSheet = async (sheetName, sheetData, metadata) => {
+const processExcelSheet = async (sheetName, sheet, metadata) => {
   const docs = [];
+  const sheetData = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
   const likelyTable = isSheetLikelyTable(sheetData);
+
+  const merges = sheet['!merges'] || [];
+  const expandedSheetData = expandMergedCells(sheetData, merges);
+  
 
   let sheetStructure;
   if (likelyTable) {
-    sheetStructure = await analyzeSheetStructure(sheetData);
+    sheetStructure = await analyzeSheetStructure(expandedSheetData);
   } else {
     sheetStructure = { isTable: false };
   }
@@ -158,27 +338,35 @@ const processExcelSheet = async (sheetName, sheetData, metadata) => {
   console.log(`Sheet "${sheetName}" structure:`, JSON.stringify(sheetStructure));
 
   if (sheetStructure && sheetStructure.isTable) {
-    const { bestHeaderRowIndex, dataStartRowIndex, endRowIndex, endColumnIndex, hasPreTableContent, multiRowHeaderRange } = sheetStructure;
+    const { bestHeaderRowIndex, dataStartRowIndex, endRowIndex, startColumnIndex, endColumnIndex, multiRowHeaderRange } = sheetStructure;
 
-    // 表の前のコンテンツを処理
-    if (hasPreTableContent && multiRowHeaderRange.start > 0) {
-      const preTableContent = sheetData.slice(0, multiRowHeaderRange.start).map(row => row.join(' ')).join('\n');
+    // テーブル範囲外のコンテンツを処理
+    const tableRange = {
+      startRow: bestHeaderRowIndex,
+      endRow: endRowIndex,
+      startCol: startColumnIndex,
+      endCol: endColumnIndex
+    };
+    const nonTableContent = processNonTableContent(sheetData, tableRange, multiRowHeaderRange);
+
+    // 非テーブルコンテンツをドキュメントに追加
+    nonTableContent.forEach(item => {
       docs.push(new Document({
-        pageContent: cleanAndNormalizeText(preTableContent),
+        pageContent: cleanAndNormalizeText(item.content),
         metadata: {
           ...metadata,
           title: `"${sheetName}" sheet`,
-          contentType: 'pre-table',
+          contentType: `non-table-${item.position}`,
         },
       }));
-    }
+    });
 
     // 最適なヘッダー行を選択
-    const headerRow = sheetData[bestHeaderRowIndex];
+    const headerRow = expandedSheetData[bestHeaderRowIndex].slice(startColumnIndex, endColumnIndex + 1);
 
     // 表データの処理（終了行と列を考慮）
-    sheetData.slice(dataStartRowIndex, endRowIndex).forEach((row, rowIndex) => {
-      const content = row.slice(0, endColumnIndex).map((cell, cellIndex) => {
+    expandedSheetData.slice(dataStartRowIndex, endRowIndex + 1).forEach((row, rowIndex) => {
+      const content = row.slice(startColumnIndex, endColumnIndex + 1).map((cell, cellIndex) => {
         const header = headerRow[cellIndex] || `Column ${cellIndex + 1}`;
         return `${header}: ${cell}`;
       }).join('\n');
@@ -193,6 +381,8 @@ const processExcelSheet = async (sheetName, sheetData, metadata) => {
         },
       }));
     });
+
+    console.log(`Processed table data from column ${getColumnName(startColumnIndex)} to ${getColumnName(endColumnIndex)}`);
   } else {
     // 非表形式データの処理
     const content = sheetData.map(row => row.join(' ')).join('\n');
@@ -230,8 +420,7 @@ const processExcelFile = async (filePath, filePathToChunkIds, chunkSize, overlap
   for (const sheetName of workbook.SheetNames) {
     try {
       const sheet = workbook.Sheets[sheetName];
-      const sheetData = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-      const sheetDocs = await processExcelSheet(sheetName, sheetData, metadata);
+      const sheetDocs = await processExcelSheet(sheetName, sheet, metadata);
       allDocs = allDocs.concat(sheetDocs);
     } catch (error) {
       console.error(`Error processing sheet "${sheetName}":`, error);
