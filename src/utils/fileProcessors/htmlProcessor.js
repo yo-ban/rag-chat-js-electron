@@ -1,9 +1,26 @@
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const puppeteer = require('puppeteer');
+const pdfParse = require('pdf-parse');
 const { Document } = require("@langchain/core/documents");
 const { cleanAndNormalizeText } = require('../textUtils');
 const { splitDocuments } = require('../documentSplitter');
 const { readFileWithEncoding, generateDocTitle, convertHtmlToPdfBuffer, extractTextFromPdfBuffer } = require('../docUtils');
+
+const convertHtmlToPdfBuffer = async (htmlContent) => {
+  const browser = await puppeteer.launch({ headless: 'new' });
+  const page = await browser.newPage();
+  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  const pdfBuffer = await page.pdf({ format: 'A4' });
+  await browser.close();
+  return pdfBuffer;
+};
+
+const extractTextFromPdfBuffer = async (pdfBuffer) => {
+  const data = await pdfParse(pdfBuffer);
+  return data.text;
+};
+
 
 const processHtmlFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);

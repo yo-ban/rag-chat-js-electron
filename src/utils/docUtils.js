@@ -1,8 +1,6 @@
 const fs = require('fs').promises;
 const chardet = require('chardet');
-const puppeteer = require('puppeteer');
 const iconvLite = require('iconv-lite');
-const pdfParse = require('pdf-parse');
 const llmService = require('../services/llmService')
 const { parseJsonResponse } = require('./jsonUtils');
 
@@ -15,20 +13,6 @@ const readFileWithEncoding = async (filePath) => {
     console.error('Error reading file:', error);
     throw error;
   }
-};
-
-const convertHtmlToPdfBuffer = async (htmlContent) => {
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-  const pdfBuffer = await page.pdf({ format: 'A4' });
-  await browser.close();
-  return pdfBuffer;
-};
-
-const extractTextFromPdfBuffer = async (pdfBuffer) => {
-  const data = await pdfParse(pdfBuffer);
-  return data.text;
 };
 
 const generateDocTitle = async (content, docName = "") => {
@@ -73,7 +57,5 @@ Content: ${content}`;
 
 module.exports = { 
   readFileWithEncoding, 
-  extractTextFromPdfBuffer, 
-  convertHtmlToPdfBuffer, 
   generateDocTitle 
 };
