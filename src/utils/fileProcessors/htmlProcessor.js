@@ -5,7 +5,7 @@ const pdfParse = require('pdf-parse');
 const { Document } = require("@langchain/core/documents");
 const { cleanAndNormalizeText } = require('../textUtils');
 const { splitDocuments } = require('../documentSplitter');
-const { readFileWithEncoding, generateDocTitle, convertHtmlToPdfBuffer, extractTextFromPdfBuffer } = require('../docUtils');
+const { readFileWithEncoding, generateDocTitle } = require('../docUtils');
 
 const convertHtmlToPdfBuffer = async (htmlContent) => {
   const browser = await puppeteer.launch({ headless: 'new' });
