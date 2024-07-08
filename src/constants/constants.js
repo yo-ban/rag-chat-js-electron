@@ -14,6 +14,7 @@ const languageMapping = {
   '.scala': 'scala',
   '.swift': 'swift',
   '.tex': 'latex',
+  '.ipynb': 'ipynb'
 };
 
 const baseDir = process.env.PORTABLE_EXECUTABLE_DIR || app.getAppPath();
