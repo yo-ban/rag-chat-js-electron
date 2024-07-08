@@ -9,8 +9,10 @@ const {
   analysisQuery, 
   determine,
   transformQuery,
-  similaritySearch 
 } = require('../utils/ragUtils');
+const { 
+  similaritySearch 
+} = require('../utils/searchUtils');
 const { 
   generateQAPrompt, 
   generateFollowUpPrompt, 
@@ -66,7 +68,7 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
         { name: 'Data Files', extensions: ['json', 'csv'] },
         { 
           name: 'Programming Files', 
-          extensions: ['cpp', 'go', 'java', 'js', 'php', 'proto', 'py', 'rst', 'rb', 'rs', 'scala', 'swift', 'tex'] 
+          extensions: ['cpp', 'go', 'java', 'js', 'php', 'proto', 'py', 'rst', 'rb', 'rs', 'scala', 'swift', 'tex', 'ipynb'] 
         },
       ]
     });
@@ -81,7 +83,7 @@ ipcMain.handle('open-file-dialog', async (event, options) => {
           const filesInDir = await fileProcessor.getAllFiles( // 非同期に変更
             filePath,
             [
-              'cpp', 'go', 'java', 'js', 'php', 'proto', 'py', 'rst', 'rb', 'rs', 'scala', 'swift', 'tex', 
+              'cpp', 'go', 'java', 'js', 'php', 'proto', 'py', 'rst', 'rb', 'rs', 'scala', 'swift', 'tex', 'ipynb',
               'txt', 'md', 'markdown', 'yaml', 'yml', 
               'pdf', 'docx', 'html', 'htm', 'xlsx', 
               'json', 'csv'

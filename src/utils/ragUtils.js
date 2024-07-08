@@ -57,23 +57,8 @@ async function transformQuery(chatHistory, analysis, chatData, dbDescription, si
   return transformedQueries;
 }
 
-async function similaritySearch(db, queries, k = 10) {
-
-  // 各クエリに対して検索を実行
-  const searchResults = await Promise.all(
-    queries.map(query => vectorDBService.similaritySearch(db, query, k + 5))
-  );
-
-  // 簡易リランク、ソート
-  const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
-  return mergedResults;
-}
-
-
 module.exports = {
-  mergeAndRerankSearchResults,
   analysisQuery,
   determine,
   transformQuery,
-  similaritySearch
 };

@@ -1,4 +1,5 @@
 const { getKuromojiTokenizer, ensureKuromojiTokenizer } = require('./tokenizerUtils');
+const vectorDBService = require('../services/vectorDBService');
 
 // 検索結果の統合とリランキング処理
 async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
@@ -92,6 +93,18 @@ async function mergeAndRerankSearchResults(searchResults, queries, k = 6) {
   return topResults;
 }
 
+async function similaritySearch(db, queries, k = 10) {
+
+  // 各クエリに対して検索を実行
+  const searchResults = await Promise.all(
+    queries.map(query => vectorDBService.similaritySearch(db, query, k + 5))
+  );
+
+  // 簡易リランク、ソート
+  const mergedResults = mergeAndRerankSearchResults(searchResults, queries, k);
+  return mergedResults;
+}
+
 const keywordScore = (content, keywords) => {
   let score = 0;
   if (keywords.length === 0) {
@@ -105,4 +118,4 @@ const keywordScore = (content, keywords) => {
   return score / keywords.length; // キーワード一致度を計算
 };
 
-module.exports = { mergeAndRerankSearchResults };
+module.exports = { mergeAndRerankSearchResults, similaritySearch };
