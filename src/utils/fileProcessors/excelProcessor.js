@@ -40,13 +40,44 @@ const findFirstNonEmptyRow = (sheetData) => {
 };
 
 const isSheetLikelyTable = (sheetData) => {
+  // 最初の非空行を見つける
   const firstNonEmptyRowIndex = findFirstNonEmptyRow(sheetData);
   if (firstNonEmptyRowIndex === -1 || sheetData.length - firstNonEmptyRowIndex < 2) return false;
 
-  const sampleRows = sheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + 10, sheetData.length));
-  const nonEmptyCellCounts = sampleRows.map(row => row.filter(cell => cell !== '').length);
-  const consistentRows = nonEmptyCellCounts.filter(count => count > sampleRows[0].length * 0.3);
-  return consistentRows.length > sampleRows.length * 0.5;
+  // 分析対象の行数を定義（最大20行）
+  const maxSampleRows = 20;
+  const sampleRows = sheetData.slice(firstNonEmptyRowIndex, Math.min(firstNonEmptyRowIndex + maxSampleRows, sheetData.length));
+
+  // 各行の非空セルの数をカウント
+  const nonEmptyCellCounts = sampleRows.map(row => row.filter(cell => cell.toString().trim() !== '').length);
+
+  // 最大の非空セル数を持つ行を特定（潜在的なヘッダー行）
+  const maxNonEmptyCells = Math.max(...nonEmptyCellCounts);
+
+  // 最小列数の閾値を設定（例：2列以上）
+  const minColumnThreshold = 2;
+  if (maxNonEmptyCells < minColumnThreshold) {
+    console.log(`Not considered a table: max non-empty cells (${maxNonEmptyCells}) is less than the minimum threshold (${minColumnThreshold})`);
+    return false;
+  }
+
+  const potentialHeaderRowIndex = nonEmptyCellCounts.indexOf(maxNonEmptyCells);
+
+  // 潜在的なヘッダー行の後の行を分析
+  const dataRows = sampleRows.slice(potentialHeaderRowIndex + 1);
+  const dataRowCounts = nonEmptyCellCounts.slice(potentialHeaderRowIndex + 1);
+
+  // データ行の一貫性をチェック
+  const consistencyThreshold = 0.3; // 30%以上のセルが埋まっていれば一貫していると判断
+  const consistentRows = dataRowCounts.filter(count => count >= maxNonEmptyCells * consistencyThreshold);
+
+  // テーブルと判断する条件
+  const tableThreshold = 0.5; // 50%以上の行が一貫していればテーブルと判断
+  const isTable = consistentRows.length >= dataRows.length * tableThreshold;
+
+  console.log(`Table detection result: ${isTable ? 'Is a table' : 'Not a table'}. Consistent rows: ${consistentRows.length}/${dataRows.length}, Max non-empty cells: ${maxNonEmptyCells}`);
+
+  return isTable;
 };
 
 const detectTableEndColumn = (expandedSheetData, startRow, endRow) => {
