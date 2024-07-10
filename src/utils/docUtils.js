@@ -46,7 +46,7 @@ Content: ${content}`;
     
     console.log(`Generated document title:\n${assistantMessageContent}`);
 
-    const title = parseJsonResponse(assistantMessageContent);
+    const title = await parseJsonResponse(assistantMessageContent);
     return title.title;
 
   } catch (e) {

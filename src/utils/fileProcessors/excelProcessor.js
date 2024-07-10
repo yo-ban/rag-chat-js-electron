@@ -308,7 +308,7 @@ Notes:
       assistantMessageContent += messageContent;
     });
 
-    const result = parseJsonResponse(assistantMessageContent);
+    const result = await parseJsonResponse(assistantMessageContent);
     
     // 結果の検証と後処理
     if (typeof result.isTable !== 'boolean' ||

@@ -36,7 +36,7 @@ async function determine(chatHistory, chatData, dbDescription, analysis, signal)
   }, signal);
 
   // レスポンスをパース
-  const determineResult = parseJsonResponse(response.trim());
+  const determineResult = await parseJsonResponse(response.trim());
   return determineResult;
 }
 
@@ -53,7 +53,7 @@ async function transformQuery(chatHistory, analysis, chatData, dbDescription, si
   }, signal);
 
   // レスポンスをパース
-  const transformedQueries = parseJsonResponse(response.trim());
+  const transformedQueries = await parseJsonResponse(response.trim());
   return transformedQueries;
 }
 

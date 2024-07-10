@@ -429,7 +429,7 @@ ${documentNames}`;
     console.log(`Generated DB info:\n${assistantMessageContent}`);
 
     try {
-      const dbInfo = parseJsonResponse(assistantMessageContent);
+      const dbInfo = await parseJsonResponse(assistantMessageContent);
       return { dbName: dbInfo.dbName, dbDescription: dbInfo.dbDescription };
     } catch {
       console.error("Error generate DB info: ", e);

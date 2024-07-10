@@ -241,7 +241,7 @@ function DocResults({ results }) {
                   <strong>{t('docName')}:</strong> {content.title}
                 </ModalText>
                 <ModalText id="transition-modal-description">
-                  <strong>{t('score')}:</strong> {content.combinedScore ? content.combinedScore.toFixed(2) : 'N/A'}
+                  <strong>{t('score')}:</strong> {content.combinedScore ? content.combinedScore.toFixed(4) : 'N/A'}
                 </ModalText>
                 <ModalText id="transition-modal-description">-------------</ModalText>
                 {Object.keys(content.metadata).map((key) => (

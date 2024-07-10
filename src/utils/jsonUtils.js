@@ -1,11 +1,11 @@
 const llmService = require('../services/llmService');
 
 // 生成AIのレスポンスからクエリを抽出する関数
-function parseJsonResponse(response) {
+async function parseJsonResponse(response) {
   try {
     return JSON.parse(response);
   } catch (error) {
-    console.warn("Initial JSON parse failed, attempting to fix JSON...");
+    console.log(`Initial JSON parse failed, attempting to fix JSON...`);
 
     // JSON修正を試みる
     const fixedResponse = fixJSON(response);
@@ -13,10 +13,10 @@ function parseJsonResponse(response) {
     try {
       return JSON.parse(fixedResponse);
     } catch (secondError) {
-      console.warn("fix JSON failed, attempting to fix JSON with LLM...");
+      console.log(`fix JSON failed, attempting to fix JSON with LLM...`);
       
       try {
-        const fixedResponseWithLLM = fixJSONWithLLM(response);
+        const fixedResponseWithLLM = await fixJSONWithLLM(response);
         return JSON.parse(fixedResponseWithLLM);
       } catch {
         console.error("Failed to parse fixed JSON:", secondError);

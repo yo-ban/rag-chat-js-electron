@@ -2,12 +2,14 @@ const kuromoji = require('kuromoji');
 const { app } = require('electron');
 const path = require('path');
 const { getEncoding } = require('js-tiktoken');
+const natural = require('natural');
 
-let tokenizer = null;
+let kuromojiTokenizer = null;
+let naturalTokenizer = null;
 
 async function initializeKuromojiTokenizer() {
-  if (tokenizer) {
-    return tokenizer;
+  if (kuromojiTokenizer) {
+    return kuromojiTokenizer;
   }
 
   return new Promise((resolve, reject) => {
@@ -15,15 +17,29 @@ async function initializeKuromojiTokenizer() {
       if (err) {
         reject(err);
       } else {
-        tokenizer = _tokenizer;
-        resolve(tokenizer);
+        kuromojiTokenizer = _tokenizer;
+        resolve(kuromojiTokenizer);
       }
     });
   });
 }
 
+function initializeNaturalTokenizer() {
+  if (naturalTokenizer) {
+    return naturalTokenizer;
+  }
+  naturalTokenizer = new natural.WordTokenizer();
+  return naturalTokenizer;
+}
+
+// 両方のトークナイザーを初期化
+async function initializeTokenizers() {
+  await initializeKuromojiTokenizer().catch(console.error);
+  initializeNaturalTokenizer();
+}
+
 // 初期化関数を即時実行
-initializeKuromojiTokenizer().catch(console.error);
+initializeTokenizers();
 
 const tiktokenEncode = getEncoding("o200k_base");
 const countTokens = (text) => {  
@@ -31,9 +47,10 @@ const countTokens = (text) => {
   return input_ids.length;
 }
 
-
 module.exports = {
   countTokens,
-  getKuromojiTokenizer: () => tokenizer,
-  ensureKuromojiTokenizer: initializeKuromojiTokenizer
+  getKuromojiTokenizer: () => kuromojiTokenizer,
+  getNaturalTokenizer: () => naturalTokenizer,
+  ensureKuromojiTokenizer: initializeKuromojiTokenizer,
+  ensureNaturalTokenizer: initializeNaturalTokenizer
 };
