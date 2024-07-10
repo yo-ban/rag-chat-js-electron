@@ -39,6 +39,18 @@ const findFirstNonEmptyRow = (sheetData) => {
   return -1; // すべての行が空の場合
 };
 
+const trimEmptyRowsFromEnd = (sheetData) => {
+  let lastNonEmptyRowIndex = sheetData.length - 1;
+
+  // 最後の非空行を見つける
+  while (lastNonEmptyRowIndex >= 0 && sheetData[lastNonEmptyRowIndex].every(cell => cell === '')) {
+    lastNonEmptyRowIndex--;
+  }
+
+  // 最後の非空行までのデータを返す
+  return sheetData.slice(0, lastNonEmptyRowIndex + 1);
+};
+
 const isSheetLikelyTable = (sheetData) => {
   // 最初の非空行を見つける
   const firstNonEmptyRowIndex = findFirstNonEmptyRow(sheetData);
@@ -351,8 +363,10 @@ Notes:
 };
 
 const processExcelSheet = async (sheetName, sheet, metadata) => {
+  console.log(`Process "${sheetName}" sheet`);
   const docs = [];
-  const sheetData = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const loadedSheetData = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const sheetData = trimEmptyRowsFromEnd(loadedSheetData);
   const likelyTable = isSheetLikelyTable(sheetData);
 
   const merges = sheet['!merges'] || [];
