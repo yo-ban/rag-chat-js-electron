@@ -122,17 +122,66 @@ function DocResults({ results }) {
     setTabValue(newValue);
   };
 
-  const groupedResults = results.reduce((acc, result, index) => {
-    const { metadata = {} } = result;
-    const { source = t('unknownSource') } = metadata;
+  // 結果の妥当性をチェックする関数
+  const isValidResult = (result) => {
+    return result && typeof result === 'object' && 'metadata' in result;
+  };
 
-    const fileName = source.split('\\').pop().split('/').pop();
-    if (!acc[fileName]) {
-      acc[fileName] = [];
+  // 安全にグループ化された結果を取得する
+  const getGroupedResults = () => {
+    if (!Array.isArray(results)) {
+      console.error('Results is not an array:', results);
+      return {};
     }
-    acc[fileName].push({ ...result, originalIndex: index });
-    return acc;
-  }, {});
+
+    return results.reduce((acc, result, index) => {
+      if (!isValidResult(result)) {
+        console.warn(`Invalid result at index ${index}:`, result);
+        return acc;
+      }
+
+      const { metadata = {} } = result;
+      const { source = t('unknownSource') } = metadata;
+
+      const fileName = source.split('\\').pop().split('/').pop();
+      if (!acc[fileName]) {
+        acc[fileName] = [];
+      }
+      acc[fileName].push({ ...result, originalIndex: index });
+      return acc;
+    }, {});
+  };
+
+  const groupedResults = getGroupedResults();
+
+  // エラー状態を表示するコンポーネント
+  const ErrorState = () => (
+    <Box sx={{ padding: 2, textAlign: 'center' }}>
+      <Typography variant="h6" color="error">
+        {t('errorLoadingResults')}
+      </Typography>
+      <Typography variant="body2">
+        {t('pleaseRefreshOrTryAgain')}
+      </Typography>
+    </Box>
+  );
+
+  // 結果が空の場合を表示するコンポーネント
+  const EmptyState = () => (
+    <Box sx={{ padding: 2, textAlign: 'center' }}>
+      <Typography variant="h6">
+        {t('noResultsFound')}
+      </Typography>
+    </Box>
+  );
+
+  if (!Array.isArray(results) || results.length === 0) {
+    return <EmptyState />;
+  }
+
+  if (Object.keys(groupedResults).length === 0) {
+    return <ErrorState />;
+  }
 
   return (
     <>
