@@ -80,8 +80,9 @@ const isSheetLikelyTable = (sheetData) => {
   const dataRowCounts = nonEmptyCellCounts.slice(potentialHeaderRowIndex + 1);
 
   // データ行の一貫性をチェック
-  const consistencyThreshold = 0.3; // 30%以上のセルが埋まっていれば一貫していると判断
-  const consistentRows = dataRowCounts.filter(count => count >= maxNonEmptyCells * consistencyThreshold);
+  const minAbsolute = 2;
+  const relativeThreshold  = 0.45; // 45%以上のセルが埋まっていれば一貫していると判断
+  const consistentRows = dataRowCounts.filter(count => count >= Math.max(minAbsolute, maxNonEmptyCells * relativeThreshold));
 
   // テーブルと判断する条件
   const tableThreshold = 0.5; // 50%以上の行が一貫していればテーブルと判断
@@ -375,7 +376,7 @@ const processExcelSheet = async (sheetName, sheet, metadata) => {
 
   let sheetStructure;
   if (likelyTable) {
-    sheetStructure = await analyzeSheetStructure(expandedSheetData);
+    sheetStructure = await analyzeSheetStructure(sheetData);
   } else {
     sheetStructure = { isTable: false };
   }
