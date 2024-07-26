@@ -20,6 +20,14 @@ const mainConfig =  {
     picocolors: 'commonjs picocolors',
     'faiss-node': 'commonjs faiss-node'
   },
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs', to: 'pdf.worker.mjs' }, // PDF.jsのワーカーファイルをコピー
+        { from: 'node_modules/node-poppler/src/lib/win32/poppler-24.02.0/Library/bin', to: 'lib/win32/poppler-24.02.0/Library/bin' },
+      ]
+    })
+  ],
   module: {
     rules: [
       {
@@ -101,7 +109,7 @@ const rendererConfig = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'public/styles', to: 'styles' }, // CSSファイルをコピー
-        { from: 'src/locales', to: 'locales' } // localeファイルをコピー
+        { from: 'src/locales', to: 'locales' }, // localeファイルをコピー
       ]
     })
   ]
