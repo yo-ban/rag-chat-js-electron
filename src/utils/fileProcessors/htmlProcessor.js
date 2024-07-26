@@ -1,11 +1,15 @@
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const puppeteer = require('puppeteer');
-const pdfParse = require('pdf-parse');
+const pdfjsLib = require('pdfjs-dist');
 const { Document } = require("@langchain/core/documents");
 const { cleanAndNormalizeText } = require('../textUtils');
 const { splitDocuments } = require('../documentSplitter');
 const { readFileWithEncoding, generateDocTitle } = require('../docUtils');
+
+// ワーカーファイルのパスを設定
+const workerSrc = './pdf.worker.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
 const convertHtmlToPdfBuffer = async (htmlContent) => {
   const browser = await puppeteer.launch({ headless: 'new' });
@@ -17,10 +21,19 @@ const convertHtmlToPdfBuffer = async (htmlContent) => {
 };
 
 const extractTextFromPdfBuffer = async (pdfBuffer) => {
-  const data = await pdfParse(pdfBuffer);
-  return data.text;
-};
+  const loadingTask = pdfjsLib.getDocument(pdfBuffer);
+  const pdf = await loadingTask.promise;
+  let fullText = '';
 
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+
+  return fullText;
+};
 
 const processHtmlFile = async (filePath, filePathToChunkIds, chunkSize, overlapPercentage) => {
   console.log(`Processing HTML file: ${filePath}`);
@@ -37,7 +50,7 @@ const processHtmlFile = async (filePath, filePathToChunkIds, chunkSize, overlapP
   const docName = path.basename(filePath);
   filePathToChunkIds[filePath] = [];
 
-  const title = await generateDocTitle(extractedText.slice(0, 350), docName)
+  const title = await generateDocTitle(extractedText.slice(0, 350), docName);
 
   const docs = [new Document({
     pageContent: cleanAndNormalizeText(extractedText),
