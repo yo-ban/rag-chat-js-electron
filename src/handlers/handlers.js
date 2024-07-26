@@ -228,6 +228,7 @@ ipcMain.handle('retrieval-augmented', async (event, chatId, chatHistory, activeD
     event.sender.send('message-progress', 'transformQuery');
     const transformedQueries = await transformQuery(chatHistory, analysisResult, chatData, dbDescription, signal);
     const queries = transformedQueries.map(transformedQuery => transformedQuery.prompt);
+    queries.push(chatHistory.slice(-1)[0].content);
     console.log(`Transformed queries:\n${JSON.stringify(transformedQueries)}`);
 
     event.sender.send('message-progress', 'searchingInDatabase');
