@@ -1,10 +1,8 @@
-const { mergeAndRerankSearchResults } = require('./searchUtils');
 const {
   generateAnalysisPrompt,
   determineInformationSufficientPrompt,
   generateTransformationPrompt,
 } = require('./promptGenerators');
-const vectorDBService = require('../services/vectorDBService');
 const llmService = require('../services/llmService');
 const { parseJsonResponse } = require('./jsonUtils');
 
